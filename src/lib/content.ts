@@ -15,7 +15,7 @@ import type {
 export const GATE_QUESTIONS: GateQuestion[] = [
   {
     id: "q1",
-    question: "فين أول مكان اتقابلنا فيه؟",
+    question: "فين أول مكان اتقابلنا فيه؟ ",
     acceptedAnswers: ["مدرسه", "المدرسه", "school"],
     hint: "فكر في السنة اللي اتعرفنا فيها",
   },
