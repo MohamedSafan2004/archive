@@ -27,13 +27,13 @@ export function LoadingScreen() {
     const counter = { value: 0 };
     const tween = gsap.to(counter, {
       value: 100,
-      duration: 3.2,
-      ease: "power2.inOut",
+      duration: 6.5,
+      ease: "power1.inOut",
       onUpdate: () => {
         setLoadingProgress(Math.floor(counter.value));
       },
       onComplete: () => {
-        setTimeout(() => setStage("gate"), 500);
+        setTimeout(() => setStage("gate"), 700);
       },
     });
 

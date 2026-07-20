@@ -6,6 +6,7 @@ export type ExperienceStage =
   | "gate"
   | "dashboard"
   | "timeline"
+  | "gallery"
   | "ending";
 
 // ============================================
@@ -84,6 +85,16 @@ export interface EasterEgg {
   title: string;
   content: string;
   isUnlocked: boolean;
+}
+
+// ============================================
+// GALLERY (museum-style photo collection, separate from timeline)
+// ============================================
+export interface GalleryPhoto {
+  id: string;
+  src: string;
+  alt: string;
+  caption?: string;
 }
 
 // ============================================

@@ -6,6 +6,7 @@ import type {
   EasterEgg,
   ArchiveCardData,
   LetterContent,
+  GalleryPhoto,
 } from "@/types";
 
 // ============================================
@@ -15,7 +16,7 @@ import type {
 export const GATE_QUESTIONS: GateQuestion[] = [
   {
     id: "q1",
-    question: "فين أول مكان اتقابلنا فيه؟ ",
+    question: "فين أول مكان اتقابلنا فيه؟",
     acceptedAnswers: ["مدرسه", "المدرسه", "school"],
     hint: "فكر في السنة اللي اتعرفنا فيها",
   },
@@ -43,6 +44,13 @@ export const ARCHIVE_CARDS: ArchiveCardData[] = [
     description: "رحلة عبر السنين اللي عدت",
     icon: "History",
     targetStage: "timeline",
+  },
+  {
+    id: "gallery",
+    label: "المتحف",
+    description: "كل الصور في مكان واحد",
+    icon: "GalleryHorizontalEnd",
+    targetStage: "gallery",
   },
   {
     id: "photos",
@@ -179,6 +187,20 @@ export const EASTER_EGGS: EasterEgg[] = [
     isUnlocked: false,
   },
 ];
+
+// ============================================
+// GALLERY (museum-style collection) — 50-60 photos
+// TODO: حط أسماء صورك في public/images/gallery/ بنفس الأسماء دي
+// أو غيّر الأسماء هنا لو عايز تسميات مختلفة
+// ============================================
+export const GALLERY_PHOTOS: GalleryPhoto[] = Array.from({ length: 60 }, (_, i) => {
+  const num = i + 1;
+  return {
+    id: `gallery-${num}`,
+    src: `/images/gallery/photo-${num}.jpg`,
+    alt: `ذكرى رقم ${num}`,
+  };
+});
 
 // ============================================
 // ENDING LETTER

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, JetBrains_Mono } from "next/font/google";
+// @ts-ignore
 import "./globals.css";
 import { GrainOverlay } from "@/components/loading/GrainOverlay";
 import { MouseGlow } from "@/components/ui/MouseGlow";
@@ -8,6 +9,7 @@ import { AudioProvider } from "@/components/audio/AudioProvider";
 import { AudioToggle } from "@/components/audio/AudioToggle";
 import { EasterEggProvider } from "@/components/easter-eggs/EasterEggProvider";
 import { SecretMemory } from "@/components/easter-eggs/SecretMemory";
+import { BackToDashboardButton } from "@/components/ui/BackToDashboardButton";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -45,6 +47,7 @@ export default function RootLayout({
             <GrainOverlay />
             <MouseGlow />
             <CursorFollower />
+            <BackToDashboardButton />
             {children}
             <AudioToggle />
             <SecretMemory />
