@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "@/hooks/useGSAP";
 import { useExperienceStore } from "@/store/experienceStore";
 import { EASE, DURATION } from "@/lib/constants";
@@ -19,7 +19,6 @@ export function LoadingScreen() {
   const setLoadingProgress = useExperienceStore((s) => s.setLoadingProgress);
   const setStage = useExperienceStore((s) => s.setStage);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const controls = useAnimation();
 
   useEffect(() => {
     if (stage !== "loading") return;

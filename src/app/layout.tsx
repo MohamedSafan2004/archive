@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, JetBrains_Mono } from "next/font/google";
-// @ts-ignore
 import "./globals.css";
 import { GrainOverlay } from "@/components/loading/GrainOverlay";
+import { CinematicBackground } from "@/components/ui/CinematicBackground";
 import { MouseGlow } from "@/components/ui/MouseGlow";
 import { CursorFollower } from "@/components/ui/CursorFollower";
 import { AudioProvider } from "@/components/audio/AudioProvider";
@@ -41,14 +41,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={`${playfair.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="relative min-h-screen bg-archive-bg font-body antialiased">
+      <body className="relative min-h-screen font-body antialiased">
         <AudioProvider>
           <EasterEggProvider>
+            <CinematicBackground />
             <GrainOverlay />
             <MouseGlow />
             <CursorFollower />
             <BackToDashboardButton />
-            {children}
+            <div className="relative z-[1]">{children}</div>
             <AudioToggle />
             <SecretMemory />
           </EasterEggProvider>

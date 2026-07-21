@@ -34,13 +34,13 @@ export function MemoryTimeline() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: EASE.smooth }}
-      className="relative min-h-screen bg-archive-bg px-6 py-24 md:px-16"
+      className="relative min-h-screen px-6 py-24 md:px-16"
     >
       <div className="mx-auto mb-20 max-w-2xl text-center">
         <p className="mb-4 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
           خط الزمن
         </p>
-        <h1 className="font-display text-4xl text-archive-text md:text-5xl">
+        <h1 className="font-display text-5xl leading-[1.1] tracking-tight text-archive-text md:text-6xl">
           كل لحظة كان ليها معنى
         </h1>
       </div>

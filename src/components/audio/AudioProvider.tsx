@@ -5,7 +5,6 @@ import { Howl } from "howler";
 import { useExperienceStore } from "@/store/experienceStore";
 import { useAudioFade } from "@/hooks/useAudioFade";
 import { AUDIO_TRACKS } from "@/lib/content";
-import { DEFAULT_VOLUME } from "@/lib/constants";
 
 interface AudioContextValue {
   fadeIn: () => void;
@@ -31,7 +30,6 @@ interface AudioProviderProps {
  */
 export function AudioProvider({ children }: AudioProviderProps) {
   const soundRef = useRef<Howl | null>(null);
-  const isPlaying = useExperienceStore((s) => s.audio.isPlaying);
   const isMuted = useExperienceStore((s) => s.audio.isMuted);
   const volume = useExperienceStore((s) => s.audio.volume);
   const stage = useExperienceStore((s) => s.stage);

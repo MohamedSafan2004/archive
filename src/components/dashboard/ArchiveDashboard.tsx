@@ -17,7 +17,7 @@ export function ArchiveDashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: EASE.smooth }}
-      className="relative min-h-screen overflow-hidden bg-archive-bg px-6 py-24 md:px-16"
+      className="relative min-h-screen overflow-hidden px-6 py-24 md:px-16"
     >
       <ParticlesField
         count={120}
@@ -36,10 +36,11 @@ export function ArchiveDashboard() {
           <p className="mb-4 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
             تم فتح الأرشيف
           </p>
-          <h1 className="font-display text-4xl text-archive-text md:text-6xl">
+          <h1 className="font-display text-5xl leading-[1.1] tracking-tight text-archive-text md:text-7xl">
             أهلاً بيك في الذكريات
           </h1>
-          <p className="mx-auto mt-5 max-w-lg font-body text-archive-muted">
+          <div className="mx-auto mt-6 h-px w-16 bg-gradient-to-r from-transparent via-archive-gold/60 to-transparent" />
+          <p className="mx-auto mt-6 max-w-lg font-body text-base text-archive-muted md:text-lg">
             كل حاجة هنا اتحفظت عشان اللحظة دي بالذات. اختار من فين تحب تبدأ.
           </p>
         </motion.div>

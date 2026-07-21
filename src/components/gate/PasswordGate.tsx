@@ -33,7 +33,7 @@ export function PasswordGate() {
         filter: "blur(20px)",
         transition: { duration: DURATION.cinematic, ease: EASE.smooth },
       }}
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-archive-bg px-6"
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6"
     >
       {/* Ambient background */}
       <div className="pointer-events-none absolute inset-0">
@@ -51,7 +51,7 @@ export function PasswordGate() {
         <p className="mb-3 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
           أرشيف سري
         </p>
-        <h1 className="font-display text-3xl text-archive-text md:text-4xl">
+        <h1 className="font-display text-4xl leading-[1.15] tracking-tight text-archive-text md:text-5xl">
           محتاج تثبت إنك أنت
         </h1>
         <div className="mt-4 flex items-center justify-center gap-2">

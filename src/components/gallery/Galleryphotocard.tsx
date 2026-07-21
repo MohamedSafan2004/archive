@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import type { GalleryPhoto } from "@/types";
 
 interface GalleryPhotoCardProps {
@@ -11,9 +12,10 @@ interface GalleryPhotoCardProps {
 }
 
 /**
- * A single museum-grid thumbnail. Uses native lazy loading
- * (loading="lazy") so with 50-60 photos the browser only decodes
- * images near the viewport, keeping scroll smooth.
+ * A single museum-grid thumbnail. Uses next/image so with 50-60 photos
+ * the browser gets automatically resized/compressed images and only
+ * decodes ones near the viewport — quality is unaffected, only the
+ * delivered file size and format are optimized.
  */
 export function GalleryPhotoCard({ photo, index, onClick }: GalleryPhotoCardProps) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -31,13 +33,15 @@ export function GalleryPhotoCard({ photo, index, onClick }: GalleryPhotoCardProp
       transition={{ duration: 0.5, delay: Math.min(index % 12, 8) * 0.04 }}
       className={`group relative ${aspectClass} w-full overflow-hidden rounded-xl bg-archive-surface`}
     >
-      <img
+      <Image
         src={photo.src}
         alt={photo.alt}
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+        quality={90}
         loading="lazy"
-        decoding="async"
         onLoad={() => setIsLoaded(true)}
-        className={`h-full w-full object-cover transition-all duration-700 group-hover:scale-110 ${
+        className={`object-cover transition-all duration-700 group-hover:scale-110 ${
           isLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
         }`}
       />

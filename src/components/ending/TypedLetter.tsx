@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { LETTER_CONTENT } from "@/lib/content";
 import { useExperienceStore } from "@/store/experienceStore";
 import { EASE } from "@/lib/constants";
-import { ParticlesField } from "@/components/ui/ParticlesField";
 
 const TYPE_SPEED_MS = 28;
 
@@ -99,20 +98,36 @@ export function TypedLetter() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.4, ease: EASE.smooth }}
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-archive-bg px-6 py-24"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-24"
     >
-      <ParticlesField count={80} className="pointer-events-none absolute inset-0 opacity-30" />
-
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-archive-gold/[0.04] blur-[140px]" />
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-archive-gold/[0.05] blur-[150px]" />
+        {/* Soft light beam from above, like a single spotlight on the letter */}
+        <div
+          className="absolute left-1/2 top-0 h-full w-[400px] -translate-x-1/2"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(201,169,97,0.06) 0%, transparent 60%)",
+          }}
+        />
       </div>
 
-      <div className="relative mx-auto max-w-2xl text-right" dir="rtl">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 1, delay: 0.15, ease: EASE.smooth }}
+        className="glass-panel relative mx-auto w-full max-w-2xl rounded-2xl px-8 py-12 text-right md:px-14 md:py-16"
+        dir="rtl"
+      >
+        {/* Corner ornament — museum letter / certificate feel */}
+        <div className="absolute right-6 top-6 h-8 w-8 border-r border-t border-archive-gold/20 md:right-8 md:top-8" />
+        <div className="absolute left-6 bottom-6 h-8 w-8 border-b border-l border-archive-gold/20 md:left-8 md:bottom-8" />
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="mb-8 font-display text-2xl text-archive-gold md:text-3xl"
+          transition={{ delay: 0.4, duration: 0.8 }}
+          className="mb-8 font-display text-3xl tracking-tight text-archive-gold md:text-4xl"
         >
           {LETTER_CONTENT.greeting}
         </motion.p>
@@ -131,16 +146,18 @@ export function TypedLetter() {
         </div>
 
         {showSignature && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE.smooth }}
-            className="mt-10 font-display text-xl text-archive-gold"
+            className="mt-12 border-t border-archive-border pt-6"
           >
-            — {LETTER_CONTENT.signature}
-          </motion.p>
+            <p className="font-display text-xl text-archive-gold">
+              — {LETTER_CONTENT.signature}
+            </p>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </motion.section>
   );
 }

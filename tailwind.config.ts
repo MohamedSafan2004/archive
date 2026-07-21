@@ -9,14 +9,20 @@ const config: Config = {
     extend: {
       colors: {
         archive: {
-          bg: "#050505",
-          surface: "#0d0d0f",
-          glass: "rgba(255,255,255,0.04)",
-          border: "rgba(255,255,255,0.08)",
+          bg: "#030303",
+          surface: "#0a0a0d",
+          "surface-raised": "#111114",
+          glass: "rgba(255,255,255,0.035)",
+          border: "rgba(255,255,255,0.07)",
+          "border-strong": "rgba(255,255,255,0.14)",
           gold: "#c9a961",
+          "gold-bright": "#e8c983",
           "gold-dim": "#8a7546",
+          rust: "#8a3b2e",
+          "rust-bright": "#b8543f",
           text: "#f2f0eb",
-          muted: "#8a8a8f",
+          muted: "#87858a",
+          "muted-dim": "#5a585d",
         },
       },
       fontFamily: {

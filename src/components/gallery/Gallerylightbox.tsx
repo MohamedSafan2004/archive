@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { GalleryPhoto } from "@/types";
 import { EASE } from "@/lib/constants";
@@ -107,10 +108,13 @@ export function GalleryLightbox({
             onClick={(e) => e.stopPropagation()}
             className="relative mx-auto max-h-[85vh] max-w-[90vw]"
           >
-            <img
+            <Image
               src={photo.src}
               alt={photo.alt}
-              className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl shadow-black/60"
+              width={1600}
+              height={1600}
+              quality={95}
+              className="max-h-[85vh] w-auto max-w-[90vw] rounded-lg object-contain shadow-2xl shadow-black/60"
             />
             {photo.caption && (
               <p className="mt-4 text-center font-body text-sm text-white/80">

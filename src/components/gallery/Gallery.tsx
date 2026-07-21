@@ -29,14 +29,14 @@ export function Gallery() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: EASE.smooth }}
-      className="relative min-h-screen bg-archive-bg px-6 py-24 md:px-12"
+      className="relative min-h-screen px-6 py-24 md:px-12"
     >
       {/* Header */}
       <div className="mx-auto mb-14 max-w-2xl text-center">
         <p className="mb-4 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
           المتحف
         </p>
-        <h1 className="font-display text-4xl text-archive-text md:text-5xl">
+        <h1 className="font-display text-5xl leading-[1.1] tracking-tight text-archive-text md:text-6xl">
           كل لحظة، صورة
         </h1>
         <p className="mx-auto mt-4 max-w-md font-body text-archive-muted">
