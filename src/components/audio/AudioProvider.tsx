@@ -9,6 +9,13 @@ import { AUDIO_TRACKS } from "@/lib/content";
 interface AudioContextValue {
   fadeIn: () => void;
   fadeOut: () => void;
+  /**
+   * Starts ambient playback immediately. Call this directly inside a
+   * user-triggered click handler (not after a setTimeout or state change)
+   * so browsers' autoplay policies treat it as a genuine user gesture
+   * and don't silently block it.
+   */
+  startPlayback: () => void;
 }
 
 const AudioContextInternal = createContext<AudioContextValue | null>(null);
@@ -33,6 +40,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
   const isMuted = useExperienceStore((s) => s.audio.isMuted);
   const volume = useExperienceStore((s) => s.audio.volume);
   const stage = useExperienceStore((s) => s.stage);
+  const hasStartedRef = useRef(false);
 
   const { fadeIn, fadeOut } = useAudioFade(soundRef);
 
@@ -52,10 +60,20 @@ export function AudioProvider({ children }: AudioProviderProps) {
     };
   }, []);
 
-  // Auto-start ambient music once the gate is unlocked (dashboard onward)
+  function startPlayback() {
+    if (hasStartedRef.current || isMuted) return;
+    hasStartedRef.current = true;
+    fadeIn(volume);
+  }
+
+  // Fallback: if the user reaches dashboard/timeline/ending some other way
+  // (e.g. navigating back), make sure playback is running.
   useEffect(() => {
-    if (stage === "dashboard" || stage === "timeline" || stage === "ending") {
-      if (!isMuted) fadeIn(volume);
+    if (
+      !hasStartedRef.current &&
+      (stage === "dashboard" || stage === "timeline" || stage === "gallery" || stage === "ending")
+    ) {
+      startPlayback();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
@@ -63,7 +81,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
   useEffect(() => {
     if (isMuted) {
       fadeOut(800);
-    } else if (stage !== "loading" && stage !== "gate") {
+    } else if (hasStartedRef.current) {
       fadeIn(volume);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,7 +92,9 @@ export function AudioProvider({ children }: AudioProviderProps) {
   }, [volume]);
 
   return (
-    <AudioContextInternal.Provider value={{ fadeIn: () => fadeIn(volume), fadeOut: () => fadeOut() }}>
+    <AudioContextInternal.Provider
+      value={{ fadeIn: () => fadeIn(volume), fadeOut: () => fadeOut(), startPlayback }}
+    >
       {children}
     </AudioContextInternal.Provider>
   );

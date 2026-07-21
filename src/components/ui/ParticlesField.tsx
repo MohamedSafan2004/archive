@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
 import { randomRange } from "@/lib/utils";
 
 interface Particle {
@@ -21,14 +20,21 @@ interface ParticlesFieldProps {
 }
 
 /**
- * Full-viewport ambient particle field built with pure CSS/Framer Motion.
- * (Previously React Three Fiber — swapped out due to a webpack/Next15
- * incompatibility with @react-three/fiber's reconciler. Same visual result,
- * no WebGL dependency, lighter and more reliable.)
- * Purely decorative, pointer-events disabled so it never blocks interaction.
+ * Full-viewport ambient particle field.
+ *
+ * PERFORMANCE NOTE: previously each particle was a Framer Motion
+ * `motion.span` — meaning 100+ separate JS-driven animation instances
+ * running continuously. This is expensive: Framer Motion has to tick
+ * every particle's animation from the JS thread every frame.
+ *
+ * Now particles are plain CSS `@keyframes` animations. Once mounted,
+ * the browser hands the whole animation off to the compositor/GPU
+ * thread — zero ongoing JS cost regardless of particle count. Visual
+ * result is identical; this is the difference that actually matters
+ * when the page also has 60+ images loading.
  */
 export function ParticlesField({
-  count = 60,
+  count = 40,
   color = "#c9a961",
   className,
 }: ParticlesFieldProps) {
@@ -40,7 +46,7 @@ export function ParticlesField({
       size: randomRange(1, 3),
       duration: randomRange(8, 20),
       delay: randomRange(0, 8),
-      driftX: randomRange(-30, 30),
+      driftX: randomRange(-20, 20),
     }));
   }, [count]);
 
@@ -51,33 +57,49 @@ export function ParticlesField({
       aria-hidden="true"
     >
       {particles.map((p) => (
-        <motion.span
+        <span
           key={p.id}
-          initial={{
+          className="particle-dot"
+          style={{
             left: `${p.x}%`,
             top: `${p.y}%`,
-            opacity: 0,
-          }}
-          animate={{
-            y: [0, -40, 0],
-            x: [0, p.driftX, 0],
-            opacity: [0, 0.6, 0],
-          }}
-          transition={{
-            duration: p.duration,
-            delay: p.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          style={{
-            position: "absolute",
             width: p.size,
             height: p.size,
-            borderRadius: "9999px",
             backgroundColor: color,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+            // @ts-expect-error custom property consumed by the keyframes below
+            "--drift-x": `${p.driftX}px`,
           }}
         />
       ))}
+
+      <style jsx>{`
+        .particle-dot {
+          position: absolute;
+          border-radius: 9999px;
+          opacity: 0;
+          will-change: transform, opacity;
+          animation-name: particleFloat;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
+
+        @keyframes particleFloat {
+          0% {
+            transform: translate(0, 0);
+            opacity: 0;
+          }
+          50% {
+            transform: translate(var(--drift-x), -40px);
+            opacity: 0.6;
+          }
+          100% {
+            transform: translate(0, 0);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }

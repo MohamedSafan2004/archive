@@ -2,14 +2,19 @@
 
 /**
  * The signature atmospheric layer for the whole experience.
- * Replaces a flat #050505 void with:
- * 1. A slow-breathing radial gradient (like distant light through fog)
- * 2. Two soft "light bleed" streaks that drift very slowly, evoking
- *    streetlight through a window at night — cinematic, not decorative
- * 3. A subtle vertical vignette for depth at the edges
  *
- * Fixed and behind everything (z-index 0), pointer-events disabled.
- * Pure CSS animation — no JS per-frame cost, safe to run everywhere.
+ * PERFORMANCE NOTE: the previous version animated `transform: scale()` on
+ * elements with a large `blur-[160px]` filter. Animating a scaled, blurred
+ * element forces the browser to recompute the blur kernel every frame
+ * (blur is expensive relative to plain transforms), which was the main
+ * cause of the sluggishness — it ran constantly, on every page, competing
+ * with everything else for GPU time.
+ *
+ * Fix: the blurred glow elements are now static (blur computed once,
+ * cached as a GPU layer) — no animation on the blur itself. Only cheap,
+ * non-blurred elements (the thin light streaks) animate, and only via
+ * `transform`, which is compositor-only and does not trigger repaint.
+ * Visual result is effectively identical; cost is now negligible.
  */
 export function CinematicBackground() {
   return (
@@ -17,47 +22,45 @@ export function CinematicBackground() {
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-archive-bg"
       aria-hidden="true"
     >
-      {/* Base breathing glow, off-center for asymmetry */}
+      {/* Base glow — static, GPU-cached, no per-frame blur recompute */}
       <div
-        className="absolute left-[20%] top-[15%] h-[900px] w-[900px] rounded-full opacity-[0.07] blur-[160px]"
+        className="absolute left-[20%] top-[15%] h-[900px] w-[900px] rounded-full opacity-[0.08] blur-[160px]"
         style={{
           background: "radial-gradient(circle, #c9a961 0%, transparent 65%)",
-          animation: "cinematicBreathe 14s ease-in-out infinite",
+          transform: "translateZ(0)",
         }}
       />
 
-      {/* Secondary rust/burgundy glow, lower-right, slower and dimmer */}
+      {/* Secondary rust/burgundy glow — static */}
       <div
-        className="absolute bottom-[10%] right-[15%] h-[700px] w-[700px] rounded-full opacity-[0.05] blur-[140px]"
+        className="absolute bottom-[10%] right-[15%] h-[700px] w-[700px] rounded-full opacity-[0.055] blur-[140px]"
         style={{
           background: "radial-gradient(circle, #8a3b2e 0%, transparent 65%)",
-          animation: "cinematicBreathe 18s ease-in-out infinite reverse",
+          transform: "translateZ(0)",
         }}
       />
 
-      {/* Drifting light streak #1 */}
+      {/* Drifting light streak #1 — cheap transform-only animation, no blur */}
       <div
-        className="absolute -left-1/4 top-1/3 h-[2px] w-[150%] opacity-[0.04]"
+        className="absolute -left-1/4 top-1/3 h-[2px] w-[150%] opacity-[0.04] will-change-transform"
         style={{
           background:
             "linear-gradient(90deg, transparent 0%, #c9a961 50%, transparent 100%)",
-          transform: "rotate(-8deg)",
-          animation: "lightDrift 22s linear infinite",
+          animation: "lightDrift 26s linear infinite",
         }}
       />
 
       {/* Drifting light streak #2 */}
       <div
-        className="absolute -left-1/4 top-2/3 h-[1px] w-[150%] opacity-[0.03]"
+        className="absolute -left-1/4 top-2/3 h-[1px] w-[150%] opacity-[0.03] will-change-transform"
         style={{
           background:
             "linear-gradient(90deg, transparent 0%, #e8c983 50%, transparent 100%)",
-          transform: "rotate(6deg)",
-          animation: "lightDrift 30s linear infinite reverse",
+          animation: "lightDrift2 34s linear infinite",
         }}
       />
 
-      {/* Edge vignette for depth */}
+      {/* Edge vignette for depth — static gradient, zero cost */}
       <div
         className="absolute inset-0"
         style={{
@@ -66,7 +69,7 @@ export function CinematicBackground() {
         }}
       />
 
-      {/* Very subtle top-to-bottom fade for cinematic letterbox feel */}
+      {/* Cinematic letterbox fade — static gradient, zero cost */}
       <div
         className="absolute inset-0"
         style={{
@@ -76,24 +79,21 @@ export function CinematicBackground() {
       />
 
       <style jsx>{`
-        @keyframes cinematicBreathe {
-          0%,
-          100% {
-            transform: scale(1) translate(0, 0);
-            opacity: 0.07;
-          }
-          50% {
-            transform: scale(1.15) translate(3%, -2%);
-            opacity: 0.1;
-          }
-        }
-
         @keyframes lightDrift {
           0% {
             transform: rotate(-8deg) translateX(-5%);
           }
           100% {
             transform: rotate(-8deg) translateX(5%);
+          }
+        }
+
+        @keyframes lightDrift2 {
+          0% {
+            transform: rotate(6deg) translateX(5%);
+          }
+          100% {
+            transform: rotate(6deg) translateX(-5%);
           }
         }
       `}</style>

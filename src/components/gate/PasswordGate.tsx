@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GATE_QUESTIONS } from "@/lib/content";
 import { useExperienceStore } from "@/store/experienceStore";
+import { useAudioContext } from "@/components/audio/AudioProvider";
 import { EASE, DURATION } from "@/lib/constants";
 import { QuestionCard } from "./QuestionCard";
 
@@ -11,12 +12,18 @@ export function PasswordGate() {
   const stage = useExperienceStore((s) => s.stage);
   const unlockGate = useExperienceStore((s) => s.unlockGate);
   const setStage = useExperienceStore((s) => s.setStage);
+  const { startPlayback } = useAudioContext();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   function handleCorrect() {
     if (currentIndex < GATE_QUESTIONS.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
+      // Start audio synchronously inside this click handler — this is what
+      // makes it count as a genuine user gesture for browser autoplay
+      // policies, so the music reliably starts instead of being silently
+      // blocked.
+      startPlayback();
       unlockGate();
       setTimeout(() => setStage("dashboard"), 1000);
     }
