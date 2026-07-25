@@ -7,6 +7,7 @@ export type ExperienceStage =
   | "dashboard"
   | "timeline"
   | "gallery"
+  | "vhs"
   | "ending";
 
 // ============================================

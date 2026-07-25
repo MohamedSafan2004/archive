@@ -1,24 +1,28 @@
 "use client";
 
-import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VHSControlsProps {
   isPlaying: boolean;
   isMuted: boolean;
   progress: number; // 0-100
+  isFullscreen?: boolean;
   onTogglePlay: () => void;
   onToggleMute: () => void;
   onSeek: (percent: number) => void;
+  onToggleFullscreen?: () => void;
 }
 
 export function VHSControls({
   isPlaying,
   isMuted,
   progress,
+  isFullscreen = false,
   onTogglePlay,
   onToggleMute,
   onSeek,
+  onToggleFullscreen,
 }: VHSControlsProps) {
   function handleScrubClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -60,6 +64,17 @@ export function VHSControls({
       >
         {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
       </button>
+
+      {onToggleFullscreen && (
+        <button
+          data-cursor="hover"
+          onClick={onToggleFullscreen}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-archive-gold/60 hover:text-archive-gold"
+          aria-label={isFullscreen ? "تصغير" : "تكبير"}
+        >
+          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+      )}
     </div>
   );
 }

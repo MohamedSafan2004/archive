@@ -41,6 +41,14 @@ export function AudioProvider({ children }: AudioProviderProps) {
   const volume = useExperienceStore((s) => s.audio.volume);
   const stage = useExperienceStore((s) => s.stage);
   const hasStartedRef = useRef(false);
+  // True once Howler has actually finished loading the audio file.
+  // Some browsers silently refuse play() if called before the sound
+  // is ready — even from inside a real click handler — so we track
+  // this and retry once loading completes.
+  const isLoadedRef = useRef(false);
+  // If startPlayback() was called before the file finished loading,
+  // remember that intent and fire it the moment load completes.
+  const pendingStartRef = useRef(false);
 
   const { fadeIn, fadeOut } = useAudioFade(soundRef);
 
@@ -48,22 +56,42 @@ export function AudioProvider({ children }: AudioProviderProps) {
     const track = AUDIO_TRACKS[0];
     if (!track) return;
 
-    soundRef.current = new Howl({
+    const sound = new Howl({
       src: [track.src],
       loop: true,
       volume: 0,
       html5: true,
+      onload: () => {
+        isLoadedRef.current = true;
+        if (pendingStartRef.current) {
+          pendingStartRef.current = false;
+          fadeIn(volume);
+        }
+      },
     });
+    soundRef.current = sound;
 
     return () => {
-      soundRef.current?.unload();
+      sound.unload();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function startPlayback() {
-    if (hasStartedRef.current || isMuted) return;
-    hasStartedRef.current = true;
+  function attemptPlay() {
+    if (isMuted) return;
+
+    if (!isLoadedRef.current) {
+      // Not ready yet — remember we tried, onload will pick it up.
+      pendingStartRef.current = true;
+      return;
+    }
     fadeIn(volume);
+  }
+
+  function startPlayback() {
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    attemptPlay();
   }
 
   // Fallback: if the user reaches dashboard/timeline/ending some other way
@@ -71,10 +99,37 @@ export function AudioProvider({ children }: AudioProviderProps) {
   useEffect(() => {
     if (
       !hasStartedRef.current &&
-      (stage === "dashboard" || stage === "timeline" || stage === "gallery" || stage === "ending")
+      (stage === "dashboard" || stage === "timeline" || stage === "gallery" || stage === "vhs" || stage === "ending")
     ) {
       startPlayback();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  // Extra safety net: browsers can still block the very first play()
+  // even when it looks like a valid gesture. If playback still isn't
+  // running a moment after we tried, listen for the next real user
+  // interaction anywhere on the page and retry then — this is what
+  // makes music start on the *next* click/move instead of needing the
+  // user to touch the volume slider specifically.
+  useEffect(() => {
+    if (!hasStartedRef.current || isMuted) return;
+
+    const checkTimeout = setTimeout(() => {
+      const sound = soundRef.current;
+      if (!sound || sound.playing()) return;
+
+      function retry() {
+        attemptPlay();
+        window.removeEventListener("pointerdown", retry);
+        window.removeEventListener("keydown", retry);
+      }
+
+      window.addEventListener("pointerdown", retry, { once: true });
+      window.addEventListener("keydown", retry, { once: true });
+    }, 400);
+
+    return () => clearTimeout(checkTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
@@ -82,7 +137,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
     if (isMuted) {
       fadeOut(800);
     } else if (hasStartedRef.current) {
-      fadeIn(volume);
+      attemptPlay();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMuted]);

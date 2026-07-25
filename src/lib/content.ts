@@ -53,18 +53,11 @@ export const ARCHIVE_CARDS: ArchiveCardData[] = [
     targetStage: "gallery",
   },
   {
-    id: "photos",
-    label: "الصور",
-    description: "لحظات اتحفظت للأبد",
-    icon: "Image",
-    targetSectionId: "photos-section",
-  },
-  {
     id: "vhs",
     label: "الأرشيف المرئي",
     description: "تسجيلات قديمة من زمان",
     icon: "Video",
-    targetSectionId: "vhs-section",
+    targetStage: "vhs",
   },
   {
     id: "letter",
@@ -78,6 +71,8 @@ export const ARCHIVE_CARDS: ArchiveCardData[] = [
 // ============================================
 // MEMORY TIMELINE — الذكريات
 // TODO: استبدلها بالذكريات الحقيقية والصور
+// (الصور دي لسه placeholders — لو عايز تحط صورك الحقيقية هنا
+// قولي أنهي صورة من public/images تروح لأنهي سنة وهظبطها)
 // ============================================
 export const MEMORIES: MemoryEntry[] = [
   {
@@ -134,29 +129,55 @@ export const MEMORIES: MemoryEntry[] = [
 ];
 
 // ============================================
-// VHS VIDEOS
-// TODO: استبدلها بفيديوهات حقيقية
+// VHS VIDEOS — تسجيلات حقيقية
 // ============================================
 export const VHS_VIDEOS: VHSVideo[] = [
   {
     id: "vhs-1",
-    src: "/videos/placeholder-1.mp4",
-    poster: "/images/vhs-poster-1.jpg",
-    title: "الرحلة الأولى",
-    dateLabel: "REC. SUMMER '18",
+    src: "/videos/IMG_7751.MP4",
+    poster: "",
+    title: "تسجيل رقم واحد",
+    dateLabel: "REC. TAPE 01",
   },
   {
     id: "vhs-2",
-    src: "/videos/placeholder-2.mp4",
-    poster: "/images/vhs-poster-2.jpg",
-    title: "عيد ميلاد سنة ما",
-    dateLabel: "REC. WINTER '20",
+    src: "/videos/IMG_7753.MP4",
+    poster: "",
+    title: "تسجيل رقم اتنين",
+    dateLabel: "REC. TAPE 02",
+  },
+  {
+    id: "vhs-3",
+    src: "/videos/IMG_7754.MP4",
+    poster: "",
+    title: "تسجيل رقم تلاتة",
+    dateLabel: "REC. TAPE 03",
+  },
+  {
+    id: "vhs-4",
+    src: "/videos/IMG_7755.MP4",
+    poster: "",
+    title: "تسجيل رقم أربعة",
+    dateLabel: "REC. TAPE 04",
+  },
+  {
+    id: "vhs-5",
+    src: "/videos/IMG_1634.MOV",
+    poster: "",
+    title: "تسجيل رقم خمسة",
+    dateLabel: "REC. TAPE 05",
+  },
+  {
+    id: "vhs-6",
+    src: "/videos/IMG_6912.MOV",
+    poster: "",
+    title: "تسجيل رقم ستة",
+    dateLabel: "REC. TAPE 06",
   },
 ];
 
 // ============================================
 // AUDIO TRACKS
-// TODO: استبدلها بترانك حقيقي
 // ============================================
 export const AUDIO_TRACKS: AudioTrack[] = [
   {
@@ -189,18 +210,72 @@ export const EASTER_EGGS: EasterEgg[] = [
 ];
 
 // ============================================
-// GALLERY (museum-style collection) — 50-60 photos
-// TODO: حط أسماء صورك في public/images/gallery/ بنفس الأسماء دي
-// أو غيّر الأسماء هنا لو عايز تسميات مختلفة
+// GALLERY (museum-style collection) — الصور الحقيقية كلها
+// ترتيبها اتعمل عشوائي عشان تحس إنه أرشيف مش قايمة مرتبة
 // ============================================
-export const GALLERY_PHOTOS: GalleryPhoto[] = Array.from({ length: 60 }, (_, i) => {
-  const num = i + 1;
-  return {
-    id: `gallery-${num}`,
-    src: `/images/gallery/photo-${num}.jpg`,
-    alt: `ذكرى رقم ${num}`,
-  };
-});
+const GALLERY_FILENAMES = [
+  "photo_35_2026-07-20_21-42-06.jpg",
+  "photo_43_2026-07-20_21-42-06.jpg",
+  "photo_29_2026-07-20_21-42-06.jpg",
+  "photo_2_2026-07-20_21-42-06.jpg",
+  "photo_23_2026-07-20_21-42-06.jpg",
+  "photo_8_2026-07-20_21-42-06.jpg",
+  "photo_25_2026-07-20_21-42-06.jpg",
+  "photo_2_2026-07-21_15-13-57.jpg",
+  "photo_38_2026-07-20_21-42-06.jpg",
+  "photo_7_2026-07-20_21-42-06.jpg",
+  "photo_4_2026-07-21_15-13-57.jpg",
+  "photo_5_2026-07-21_15-13-57.jpg",
+  "photo_3_2026-07-20_21-42-06.jpg",
+  "photo_21_2026-07-20_21-42-06.jpg",
+  "photo_10_2026-07-20_21-42-06.jpg",
+  "photo_9_2026-07-20_21-42-06.jpg",
+  "photo_33_2026-07-20_21-42-06.jpg",
+  "photo_26_2026-07-20_21-42-06.jpg",
+  "photo_48_2026-07-20_21-42-06.jpg",
+  "photo_36_2026-07-20_21-42-06.jpg",
+  "photo_3_2026-07-21_15-13-57.jpg",
+  "photo_47_2026-07-20_21-42-06.jpg",
+  "photo_32_2026-07-20_21-42-06.jpg",
+  "photo_11_2026-07-20_21-42-06.jpg",
+  "photo_41_2026-07-20_21-42-06.jpg",
+  "photo_30_2026-07-20_21-42-06.jpg",
+  "photo_40_2026-07-20_21-42-06.jpg",
+  "photo_1_2026-07-21_15-13-57.jpg",
+  "photo_5_2026-07-20_21-42-06.jpg",
+  "photo_42_2026-07-20_21-42-06.jpg",
+  "photo_45_2026-07-20_21-42-06.jpg",
+  "photo_19_2026-07-20_21-42-06.jpg",
+  "photo_12_2026-07-20_21-42-06.jpg",
+  "photo_27_2026-07-20_21-42-06.jpg",
+  "photo_44_2026-07-20_21-42-06.jpg",
+  "photo_6_2026-07-20_21-42-06.jpg",
+  "photo_37_2026-07-20_21-42-06.jpg",
+  "photo_1_2026-07-20_21-42-06.jpg",
+  "photo_46_2026-07-20_21-42-06.jpg",
+  "photo_17_2026-07-20_21-42-06.jpg",
+  "photo_15_2026-07-20_21-42-06.jpg",
+  "photo_39_2026-07-20_21-42-06.jpg",
+  "photo_22_2026-07-20_21-42-06.jpg",
+  "photo_34_2026-07-20_21-42-06.jpg",
+  "placeholder-1.jpg",
+  "placeholder-2.jpg",
+  "placeholder-3.jpg",
+  "placeholder-4.jpg",
+  "placeholder-5.jpg",
+  "placeholder-6.jpg",
+  "placeholder-7.jpg",
+  "placeholder-8.jpg",
+  "placeholder-secret.jpg",
+];
+
+export const GALLERY_PHOTOS: GalleryPhoto[] = GALLERY_FILENAMES.map(
+  (filename, i) => ({
+    id: `gallery-${i + 1}`,
+    src: `/images/${filename}`,
+    alt: `ذكرى رقم ${i + 1}`,
+  })
+);
 
 // ============================================
 // ENDING LETTER

@@ -15,7 +15,8 @@ export function BackToDashboardButton() {
   const stage = useExperienceStore((s) => s.stage);
   const setStage = useExperienceStore((s) => s.setStage);
 
-  const isVisible = stage === "timeline" || stage === "gallery" || stage === "ending";
+  const isVisible =
+    stage === "timeline" || stage === "gallery" || stage === "vhs" || stage === "ending";
 
   return (
     <AnimatePresence>
