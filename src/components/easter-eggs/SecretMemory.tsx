@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import Image from "next/image";
 import { useExperienceStore } from "@/store/experienceStore";
 import { EASTER_EGGS, MEMORIES } from "@/lib/content";
 import { EASE } from "@/lib/constants";
@@ -14,6 +15,7 @@ export function SecretMemory() {
   const linkedMemory = egg?.unlockedMemoryId
     ? MEMORIES.find((m) => m.id === egg.unlockedMemoryId)
     : null;
+  const photo = linkedMemory?.photos[0];
 
   return (
     <AnimatePresence>
@@ -22,7 +24,7 @@ export function SecretMemory() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-6 backdrop-blur-md"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-6 backdrop-blur-md"
           onClick={closeSecretMemory}
         >
           <motion.div
@@ -31,31 +33,47 @@ export function SecretMemory() {
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.5, ease: EASE.smooth }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel relative w-full max-w-md rounded-2xl p-8 text-right"
+            className="glass-panel relative w-full max-w-md overflow-hidden rounded-2xl text-right"
           >
             <button
               data-cursor="hover"
               onClick={closeSecretMemory}
-              className="absolute left-5 top-5 text-archive-muted transition-colors hover:text-archive-text"
+              className="absolute left-5 top-5 z-10 text-white/80 transition-colors hover:text-archive-gold"
             >
               <X size={18} />
             </button>
 
-            <span className="font-mono text-xs uppercase tracking-[0.3em] text-archive-gold">
-              ذكرى سرية مفتوحة
-            </span>
-            <h3 className="mt-3 font-display text-2xl text-archive-text">{egg.title}</h3>
-            <p className="mt-4 font-body leading-relaxed text-archive-muted">
-              {egg.content}
-            </p>
-
-            {linkedMemory && (
-              <div className="mt-6 border-t border-archive-border pt-6">
-                <p className="font-body text-sm text-archive-text">
-                  {linkedMemory.description}
-                </p>
+            {photo && (
+              <div className="vhs-scanlines relative aspect-[4/3] w-full overflow-hidden">
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 448px"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.6)_100%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
               </div>
             )}
+
+            <div className="p-8">
+              <span className="font-mono text-xs uppercase tracking-[0.3em] text-archive-gold">
+                ذكرى سرية مفتوحة
+              </span>
+              <h3 className="mt-3 font-display text-2xl text-archive-text">{egg.title}</h3>
+              <p className="mt-4 font-body leading-relaxed text-archive-muted">
+                {egg.content}
+              </p>
+
+              {linkedMemory && (
+                <div className="mt-6 border-t border-archive-border pt-6">
+                  <p className="font-body text-sm text-archive-text">
+                    {linkedMemory.description}
+                  </p>
+                </div>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

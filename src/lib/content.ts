@@ -17,20 +17,20 @@ export const GATE_QUESTIONS: GateQuestion[] = [
   {
     id: "q1",
     question: "فين أول مكان اتقابلنا فيه؟",
-    acceptedAnswers: ["مدرسه", "المدرسه", "school"],
+    acceptedAnswers: ["مدرسه", "المدرسه", "school","رياض الصالحين"],
     hint: "فكر في السنة اللي اتعرفنا فيها",
   },
   {
     id: "q2",
-    question: "ايه اللقب اللي بينادينك بيه بس أنا؟",
-    acceptedAnswers: ["لقب"],
-    hint: "الحاجة اللي بتضايقك منها بس بتحبها",
+    question: "لعبتك المفضلة",
+    acceptedAnswers: ["الدن رينج","Elden Ring","elden ring", "Elden ring","ب"],
+    hint: "لعبة مازوخية",
   },
   {
     id: "q3",
-    question: "ايه أكتر حاجة كنا بنعملها مع بعض؟",
-    acceptedAnswers: ["حاجه"],
-    hint: "فكر في أكتر يوم فاضي كنا بنضيعه",
+    question: "بيدري؟",
+    acceptedAnswers: ["حاجه","مانجا"],
+    hint: "شبلانجاااا",
   },
 ];
 
@@ -77,13 +77,13 @@ export const ARCHIVE_CARDS: ArchiveCardData[] = [
 export const MEMORIES: MemoryEntry[] = [
   {
     id: "memory-1",
-    year: "2015",
+    year: "2017",
     title: "البداية",
     description: "أول لقاء، مكناش نعرف إن ده هيبقى صداقة عمر.",
     transitionVariant: "reveal-slide",
     photos: [
-      { id: "p1", src: "/images/placeholder-1.jpg", alt: "ذكرى 2015" },
-      { id: "p2", src: "/images/placeholder-2.jpg", alt: "ذكرى 2015" },
+      { id: "p1", src: "/images/placeholder-1.jpg", alt: "ذكرى 2017" },
+      { id: "p2", src: "/images/placeholder-2.jpg", alt: "ذكرى 2017" },
     ],
   },
   {
@@ -95,7 +95,7 @@ export const MEMORIES: MemoryEntry[] = [
     photos: [
       { id: "p3", src: "/images/placeholder-3.jpg", alt: "ذكرى 2018" },
       { id: "p4", src: "/images/placeholder-4.jpg", alt: "ذكرى 2018" },
-      { id: "p5", src: "/images/placeholder-5.jpg", alt: "ذكرى 2018" },
+      { id: "p5", src: "/images/photo_7_2026-07-26_02-34-12.jpg", alt: "ذكرى 2018" },
     ],
   },
   {
@@ -104,17 +104,17 @@ export const MEMORIES: MemoryEntry[] = [
     title: "الأوقات الصعبة",
     description: "لما الدنيا كانت وحشة، كنت جنبي.",
     transitionVariant: "parallax-stack",
-    photos: [{ id: "p6", src: "/images/placeholder-6.jpg", alt: "ذكرى 2021" }],
+    photos: [{ id: "p6", src: "/images/photo_6_2026-07-20_21-42-06.jpg", alt: "ذكرى 2021" }],
   },
   {
     id: "memory-4",
-    year: "2024",
+    year: "2026",
     title: "دلوقتي",
     description: "ولسه الرحلة مستمرة.",
     transitionVariant: "reveal-slide",
     photos: [
-      { id: "p7", src: "/images/placeholder-7.jpg", alt: "ذكرى 2024" },
-      { id: "p8", src: "/images/placeholder-8.jpg", alt: "ذكرى 2024" },
+      { id: "p7", src: "/images/photo_2_2026-07-26_02-34-12.jpg", alt: "ذكرى 2026" },
+      { id: "p8", src: "/images/photo_48_2026-07-20_21-42-06.jpg", alt: "ذكرى 2026" },
     ],
   },
   {
@@ -130,51 +130,44 @@ export const MEMORIES: MemoryEntry[] = [
 
 // ============================================
 // VHS VIDEOS — تسجيلات حقيقية
+// (IMG_*.MOV القديمة اتشالت من هنا لمشاكل توافق في المتصفحات —
+// كل الفيديوهات الجديدة .mp4 وده أنضف وأضمن)
 // ============================================
-export const VHS_VIDEOS: VHSVideo[] = [
-  {
-    id: "vhs-1",
-    src: "/videos/IMG_7751.MP4",
-    poster: "",
-    title: "تسجيل رقم واحد",
-    dateLabel: "REC. TAPE 01",
-  },
-  {
-    id: "vhs-2",
-    src: "/videos/IMG_7753.MP4",
-    poster: "",
-    title: "تسجيل رقم اتنين",
-    dateLabel: "REC. TAPE 02",
-  },
-  {
-    id: "vhs-3",
-    src: "/videos/IMG_7754.MP4",
-    poster: "",
-    title: "تسجيل رقم تلاتة",
-    dateLabel: "REC. TAPE 03",
-  },
-  {
-    id: "vhs-4",
-    src: "/videos/IMG_7755.MP4",
-    poster: "",
-    title: "تسجيل رقم أربعة",
-    dateLabel: "REC. TAPE 04",
-  },
-  {
-    id: "vhs-5",
-    src: "/videos/IMG_1634.MOV",
-    poster: "",
-    title: "تسجيل رقم خمسة",
-    dateLabel: "REC. TAPE 05",
-  },
-  {
-    id: "vhs-6",
-    src: "/videos/IMG_6912.MOV",
-    poster: "",
-    title: "تسجيل رقم ستة",
-    dateLabel: "REC. TAPE 06",
-  },
+const VHS_FILENAMES = [
+  "IMG_7751.MP4",
+  "IMG_7753.MP4",
+  "IMG_7754.MP4",
+  "IMG_7755.MP4",
+  "video_2026-07-26_02-34-12 (2).mp4",
+  "video_2026-07-26_02-34-12 (16).mp4",
+  "video_2026-07-26_02-34-12 (17).mp4",
+  "video_2026-07-26_02-36-54.mp4",
+  "video_2026-07-26_02-36-54 (2).mp4",
+  "video_2026-07-26_02-36-54 (3).mp4",
+  "video_2026-07-26_02-36-54 (4).mp4",
+  "video_2026-07-26_02-36-54 (5).mp4",
+  "video_2026-07-26_02-36-54 (6).mp4",
+  "video_2026-07-26_02-36-54 (7).mp4",
+  "video_2026-07-26_02-36-54 (8).mp4",
+  "video_2026-07-26_02-36-54 (9).mp4",
+  "video_2026-07-26_02-36-54 (10).mp4",
+  "video_2026-07-26_02-36-54 (11).mp4",
+  "video_2026-07-26_02-36-54 (12).mp4",
+  "video_2026-07-26_02-36-54 (13).mp4",
 ];
+
+const VHS_ARABIC_NUMBERS = [
+  "واحد", "اتنين", "تلاتة", "أربعة", "خمسة", "ستة", "سبعة", "تمانية", "تسعة", "عشرة",
+  "حداشر", "اتناشر", "تلتاشر", "اربعتاشر", "خمستاشر", "سِتاشر", "سبعتاشر", "تمنتاشر", "تسعتاشر", "عشرين",
+];
+
+export const VHS_VIDEOS: VHSVideo[] = VHS_FILENAMES.map((filename, i) => ({
+  id: `vhs-${i + 1}`,
+  src: `/videos/${encodeURIComponent(filename)}`,
+  poster: "",
+  title: `تسجيل رقم ${VHS_ARABIC_NUMBERS[i] ?? i + 1}`,
+  dateLabel: `REC. TAPE ${String(i + 1).padStart(2, "0")}`,
+}));
 
 // ============================================
 // AUDIO TRACKS
@@ -195,7 +188,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: "egg-konami",
     trigger: "konami",
     unlockedMemoryId: "memory-secret-1",
-    title: "لقيتها! 🎉",
+    title: "لقيتها",
     content: "مبروك، لقيت الذكرى السرية. مكنتش فاكر إنك هتوصلها فعلاً.",
     isUnlocked: false,
   },
@@ -203,8 +196,22 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: "egg-logo-click",
     trigger: "click-count",
     triggerConfig: { targetId: "archive-logo", requiredCount: 5 },
-    title: "فضولي زيادة 👀",
+    title: "فضولي زيادة",
     content: "طب بما إنك دوست كذا مرة... خد ذكرى تانية بونص.",
+    isUnlocked: false,
+  },
+  {
+    id: "egg-idle",
+    trigger: "hover-hold",
+    title: "لسه واقف؟",
+    content: "لسه واقف مستني حاجة تحصل؟ يلا كمل، فيه كتير لسه.",
+    isUnlocked: false,
+  },
+  {
+    id: "egg-name",
+    trigger: "click-sequence",
+    title: "لقيتك يا سيكا",
+    content: "كتبت اسمك في سؤال مكنش السؤال بتاعه أصلاً. عارفك من زمان يا سيكا.",
     isUnlocked: false,
   },
 ];
@@ -258,6 +265,16 @@ const GALLERY_FILENAMES = [
   "photo_39_2026-07-20_21-42-06.jpg",
   "photo_22_2026-07-20_21-42-06.jpg",
   "photo_34_2026-07-20_21-42-06.jpg",
+  "photo_1_2026-07-26_02-34-12.jpg",
+  "photo_2_2026-07-26_02-34-12.jpg",
+  "photo_3_2026-07-26_02-34-12.jpg",
+  "photo_4_2026-07-26_02-34-12.jpg",
+  "photo_5_2026-07-26_02-34-12.jpg",
+  "photo_6_2026-07-26_02-34-12.jpg",
+  "photo_7_2026-07-26_02-34-12.jpg",
+  "photo_8_2026-07-26_02-34-12.jpg",
+  "photo_9_2026-07-26_02-34-12.jpg",
+  "photo_10_2026-07-26_02-34-12.jpg",
   "placeholder-1.jpg",
   "placeholder-2.jpg",
   "placeholder-3.jpg",
@@ -266,7 +283,6 @@ const GALLERY_FILENAMES = [
   "placeholder-6.jpg",
   "placeholder-7.jpg",
   "placeholder-8.jpg",
-  "placeholder-secret.jpg",
 ];
 
 export const GALLERY_PHOTOS: GalleryPhoto[] = GALLERY_FILENAMES.map(

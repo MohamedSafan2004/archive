@@ -3,8 +3,6 @@ import { Playfair_Display, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { GrainOverlay } from "@/components/loading/GrainOverlay";
 import { CinematicBackground } from "@/components/ui/CinematicBackground";
-import { MouseGlow } from "@/components/ui/MouseGlow";
-import { CursorFollower } from "@/components/ui/CursorFollower";
 import { AudioProvider } from "@/components/audio/AudioProvider";
 import { AudioToggle } from "@/components/audio/AudioToggle";
 import { EasterEggProvider } from "@/components/easter-eggs/EasterEggProvider";
@@ -46,8 +44,6 @@ export default function RootLayout({
           <EasterEggProvider>
             <CinematicBackground />
             <GrainOverlay />
-            <MouseGlow />
-            <CursorFollower />
             <BackToDashboardButton />
             <div className="relative z-[1]">{children}</div>
             <AudioToggle />

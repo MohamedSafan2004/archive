@@ -4,14 +4,11 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { MEMORIES } from "@/lib/content";
 import { useExperienceStore } from "@/store/experienceStore";
-import { TimelineNode } from "./TimelineNode";
-import { PhotoSection } from "@/components/photos/PhotoSection";
+import { TimelineChapter } from "./TimelineChapter";
 import { EASE } from "@/lib/constants";
 
 export function MemoryTimeline() {
   const stage = useExperienceStore((s) => s.stage);
-  const unlockedEasterEggs = useExperienceStore((s) => s.unlockedEasterEggs);
-  const openSecretMemory = useExperienceStore((s) => s.openSecretMemory);
   const setStage = useExperienceStore((s) => s.setStage);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -24,9 +21,9 @@ export function MemoryTimeline() {
 
   if (stage !== "timeline") return null;
 
-  const visibleMemories = MEMORIES.filter(
-    (m) => !m.isSecret || unlockedEasterEggs.length > 0
-  );
+  // Secret memory only ever appears once unlocked via its easter egg —
+  // it lives in the SecretMemory modal, not inline in the scroll here.
+  const visibleMemories = MEMORIES.filter((m) => !m.isSecret);
 
   return (
     <motion.div
@@ -34,9 +31,10 @@ export function MemoryTimeline() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: EASE.smooth }}
-      className="relative min-h-screen px-6 py-24 md:px-16"
+      className="relative min-h-screen"
     >
-      <div className="mx-auto mb-20 max-w-2xl text-center">
+      {/* Intro */}
+      <div className="mx-auto max-w-2xl px-6 pb-16 pt-24 text-center md:pt-32">
         <p className="mb-4 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
           خط الزمن
         </p>
@@ -45,45 +43,25 @@ export function MemoryTimeline() {
         </h1>
       </div>
 
-      {/* Timeline with progress line */}
-      <div className="relative mx-auto max-w-4xl">
-        <div className="absolute left-1/2 top-0 hidden h-full w-[1px] -translate-x-1/2 bg-archive-border md:block">
-          <motion.div
-            style={{ height: lineHeight }}
-            className="absolute left-0 top-0 w-full bg-archive-gold"
-          />
-        </div>
+      {/* Subtle progress rail along the side — reads the journey's
+          progression without competing with the full-bleed photos */}
+      <div className="pointer-events-none fixed left-6 top-1/2 z-30 hidden h-40 w-[2px] -translate-y-1/2 overflow-hidden rounded-full bg-white/10 md:block">
+        <motion.div
+          style={{ height: lineHeight }}
+          className="absolute left-0 top-0 w-full bg-archive-gold"
+        />
+      </div>
 
+      {/* One continuous cinematic chapter per memory — photo and text
+          live together instead of being split across separate sections */}
+      <div>
         {visibleMemories.map((memory, index) => (
-          <TimelineNode
-            key={memory.id}
-            memory={memory}
-            index={index}
-            isUnlocked={!memory.isSecret || unlockedEasterEggs.length > 0}
-            onClick={() => {
-              if (memory.isSecret) {
-                openSecretMemory(memory.id);
-              } else {
-                document
-                  .getElementById(`photos-section-${memory.id}`)
-                  ?.scrollIntoView({ behavior: "smooth", block: "center" });
-              }
-            }}
-          />
+          <TimelineChapter key={memory.id} memory={memory} index={index} />
         ))}
       </div>
 
-      {/* Full photo sections below the timeline */}
-      <div className="mt-32">
-        {visibleMemories
-          .filter((m) => !m.isSecret)
-          .map((memory) => (
-            <PhotoSection key={memory.id} memory={memory} />
-          ))}
-      </div>
-
       {/* Continue to ending */}
-      <div className="mt-24 flex justify-center">
+      <div className="flex justify-center py-24">
         <button
           data-cursor="hover"
           onClick={() => setStage("ending")}

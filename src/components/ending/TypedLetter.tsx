@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { LETTER_CONTENT } from "@/lib/content";
 import { useExperienceStore } from "@/store/experienceStore";
 import { EASE } from "@/lib/constants";
 
 const TYPE_SPEED_MS = 28;
+
+// Shown once, as a small typed-in extra line, if the signature is
+// double-clicked at the end of the letter.
+const SIGNATURE_SECRET_LINE = "في حاجات كتير مقولتهاش، بس انت عارفها.";
 
 function useTypewriter(text: string, active: boolean, startDelay: number = 0) {
   const [displayed, setDisplayed] = useState("");
@@ -72,6 +76,7 @@ export function TypedLetter() {
   const markEndingSeen = useExperienceStore((s) => s.markEndingSeen);
   const [activeParagraph, setActiveParagraph] = useState(-1);
   const [showSignature, setShowSignature] = useState(false);
+  const [showSecretLine, setShowSecretLine] = useState(false);
 
   useEffect(() => {
     if (stage === "ending") {
@@ -152,9 +157,26 @@ export function TypedLetter() {
             transition={{ duration: 0.8, ease: EASE.smooth }}
             className="mt-12 border-t border-archive-border pt-6"
           >
-            <p className="font-display text-xl text-archive-gold">
+            <p
+              data-cursor="hover"
+              onDoubleClick={() => setShowSecretLine(true)}
+              className="cursor-pointer select-none font-display text-xl text-archive-gold"
+            >
               — {LETTER_CONTENT.signature}
             </p>
+
+            <AnimatePresence>
+              {showSecretLine && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.6, ease: EASE.smooth }}
+                  className="mt-4 font-body text-sm leading-relaxed text-archive-muted"
+                >
+                  {SIGNATURE_SECRET_LINE}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </motion.div>

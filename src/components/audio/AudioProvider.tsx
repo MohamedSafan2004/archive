@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, createContext, useContext, type ReactNode } from "react";
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { useExperienceStore } from "@/store/experienceStore";
 import { useAudioFade } from "@/hooks/useAudioFade";
 import { AUDIO_TRACKS } from "@/lib/content";
@@ -41,13 +41,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
   const volume = useExperienceStore((s) => s.audio.volume);
   const stage = useExperienceStore((s) => s.stage);
   const hasStartedRef = useRef(false);
-  // True once Howler has actually finished loading the audio file.
-  // Some browsers silently refuse play() if called before the sound
-  // is ready — even from inside a real click handler — so we track
-  // this and retry once loading completes.
   const isLoadedRef = useRef(false);
-  // If startPlayback() was called before the file finished loading,
-  // remember that intent and fire it the moment load completes.
   const pendingStartRef = useRef(false);
 
   const { fadeIn, fadeOut } = useAudioFade(soundRef);
@@ -60,7 +54,11 @@ export function AudioProvider({ children }: AudioProviderProps) {
       src: [track.src],
       loop: true,
       volume: 0,
-      html5: true,
+      // html5: false (the Howler default) — uses Web Audio API instead of
+      // an <audio> tag, which loads the file fully into memory before
+      // onload fires. With html5:true, onload can fire before the browser
+      // actually has enough data to play, and play() then gets silently
+      // swallowed. Fine here since the ambient track is a small mp3.
       onload: () => {
         isLoadedRef.current = true;
         if (pendingStartRef.current) {
@@ -80,8 +78,15 @@ export function AudioProvider({ children }: AudioProviderProps) {
   function attemptPlay() {
     if (isMuted) return;
 
+    // The browser suspends the shared AudioContext until a real user
+    // gesture resumes it. Howler creates this context lazily, so we
+    // explicitly resume it here — this is the actual fix for audio
+    // staying silent until the user happens to touch the volume slider.
+    if (Howler.ctx && Howler.ctx.state === "suspended") {
+      Howler.ctx.resume();
+    }
+
     if (!isLoadedRef.current) {
-      // Not ready yet — remember we tried, onload will pick it up.
       pendingStartRef.current = true;
       return;
     }
@@ -106,12 +111,11 @@ export function AudioProvider({ children }: AudioProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
-  // Extra safety net: browsers can still block the very first play()
-  // even when it looks like a valid gesture. If playback still isn't
-  // running a moment after we tried, listen for the next real user
-  // interaction anywhere on the page and retry then — this is what
-  // makes music start on the *next* click/move instead of needing the
-  // user to touch the volume slider specifically.
+  // Extra safety net: some browsers still keep the context suspended even
+  // after the above. If playback isn't actually running a moment after we
+  // tried, resume+retry on the very next real interaction anywhere on the
+  // page — this is what makes music reliably start on the next click/move
+  // instead of requiring the user to touch the volume slider specifically.
   useEffect(() => {
     if (!hasStartedRef.current || isMuted) return;
 
@@ -120,6 +124,9 @@ export function AudioProvider({ children }: AudioProviderProps) {
       if (!sound || sound.playing()) return;
 
       function retry() {
+        if (Howler.ctx && Howler.ctx.state === "suspended") {
+          Howler.ctx.resume();
+        }
         attemptPlay();
         window.removeEventListener("pointerdown", retry);
         window.removeEventListener("keydown", retry);

@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect } from "react";
 import { EASTER_EGGS } from "@/lib/content";
 import { useKonamiCode, useClickCountEgg } from "@/hooks/useEasterEgg";
+import { useIdleEgg, useNameTypedEgg } from "@/hooks/useIdleAndNameEgg";
 
 interface EasterEggProviderProps {
   children: ReactNode;
@@ -10,15 +11,19 @@ interface EasterEggProviderProps {
 
 /**
  * Wires up all global easter egg listeners for the app.
- * Konami code works anywhere; the logo-click egg attaches
- * to #archive-logo once it exists in the DOM (dashboard stage).
+ * Konami code and idle detection work anywhere; the logo-click egg
+ * attaches to #archive-logo once it exists in the DOM (dashboard stage).
  */
 export function EasterEggProvider({ children }: EasterEggProviderProps) {
   const konamiEgg = EASTER_EGGS.find((e) => e.trigger === "konami");
   const logoClickEgg = EASTER_EGGS.find((e) => e.trigger === "click-count");
+  const idleEgg = EASTER_EGGS.find((e) => e.id === "egg-idle");
+  const nameEgg = EASTER_EGGS.find((e) => e.id === "egg-name");
 
   useKonamiCode(konamiEgg);
   const handleLogoClick = useClickCountEgg(logoClickEgg);
+  useIdleEgg(idleEgg);
+  useNameTypedEgg(nameEgg, "سيكا");
 
   useEffect(() => {
     if (!logoClickEgg?.triggerConfig?.targetId) return;
