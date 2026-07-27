@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import type { VHSVideo } from "@/types";
 import { EASE } from "@/lib/constants";
 import { VHSControls } from "./VHSControls";
@@ -15,35 +15,73 @@ interface VHSPlayerProps {
 /**
  * VHS frame with a fullscreen toggle.
  *
- * Fullscreen renders as a real modal via createPortal straight into
- * document.body. This intentionally avoids two fragile approaches:
- *   1. Native Fullscreen API — strips our scanline/vignette styling.
- *   2. `position: fixed` left inside the component's normal parent tree —
- *      any ancestor with a CSS `transform` (common with Framer Motion
- *      wrappers like the grid/section around this card) turns `fixed`
- *      into acting like `absolute` relative to that ancestor instead of
- *      the viewport, which is exactly what broke the previous version.
- * Portaling to document.body sidesteps that entirely: the overlay is
- * guaranteed to be positioned against the real viewport every time.
+ * PERFORMANCE NOTE — single <video> element, never remounted:
+ * The old version rendered two separate <video> tags (one inline, one inside
+ * the fullscreen portal) and swapped which one was in the DOM. Every swap
+ * forced the browser to throw away its buffered data and start a brand new
+ * network request from 0:00 — that's what caused the stutter/re-buffering
+ * when opening fullscreen. Now there is exactly ONE <video> element for the
+ * entire lifetime of this component. It always lives inside a portal
+ * attached to document.body, and we move it between "docked" (sitting
+ * inline in the grid, positioned absolutely over a placeholder box) and
+ * "fullscreen" (fixed, covering the viewport) purely via CSS. The browser
+ * never re-requests the source, so playback position and buffered data
+ * survive the transition perfectly.
  *
- * The <video> element itself unmounts from the inline card and remounts
- * inside the portal (they're different spots in the DOM tree), so we
- * manually save/restore currentTime and play state across that switch —
- * otherwise the video would silently jump back to 0:00 every time
- * fullscreen is toggled.
+ * We portal to document.body (rather than rendering the video directly in
+ * the card) because any ancestor with a CSS `transform` — common with
+ * Framer Motion wrappers like the grid/section around this card — turns
+ * `position: fixed` into behaving like `absolute` relative to that
+ * ancestor instead of the viewport. Portaling sidesteps that entirely.
+ *
+ * We track the docked card's on-screen position with getBoundingClientRect
+ * and sync it to the portaled video's inline style on scroll/resize, so it
+ * looks like it's sitting inside the card even though it technically lives
+ * at the end of <body>.
  */
 export function VHSPlayer({ video }: VHSPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showStatic, setShowStatic] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const savedTimeRef = useRef(0);
-  const wasPlayingRef = useRef(false);
+  const [dockRect, setDockRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   useEffect(() => setMounted(true), []);
+
+  // Keep the portaled video positioned exactly over the docked placeholder.
+  useLayoutEffect(() => {
+    if (isFullscreen) return;
+    const el = dockRef.current;
+    if (!el) return;
+
+    function updateRect() {
+      const r = el!.getBoundingClientRect();
+      setDockRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    }
+
+    updateRect();
+    window.addEventListener("scroll", updateRect, { passive: true, capture: true });
+    window.addEventListener("resize", updateRect);
+    const ro = new ResizeObserver(updateRect);
+    ro.observe(el);
+
+    return () => {
+      window.removeEventListener("scroll", updateRect, { capture: true });
+      window.removeEventListener("resize", updateRect);
+      ro.disconnect();
+    };
+  }, [isFullscreen]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -53,19 +91,41 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
       if (!el!.duration) return;
       setProgress((el!.currentTime / el!.duration) * 100);
     }
+    function handleWaiting() {
+      setIsLoading(true);
+    }
+    function handlePlaying() {
+      setIsLoading(false);
+    }
+    function handleCanPlay() {
+      setIsLoading(false);
+    }
+    function handleError() {
+      setIsLoading(false);
+      setHasError(true);
+    }
 
     el.addEventListener("timeupdate", handleTimeUpdate);
-    return () => el.removeEventListener("timeupdate", handleTimeUpdate);
-  }, [isFullscreen]);
+    el.addEventListener("waiting", handleWaiting);
+    el.addEventListener("playing", handlePlaying);
+    el.addEventListener("canplay", handleCanPlay);
+    el.addEventListener("error", handleError);
+    return () => {
+      el.removeEventListener("timeupdate", handleTimeUpdate);
+      el.removeEventListener("waiting", handleWaiting);
+      el.removeEventListener("playing", handlePlaying);
+      el.removeEventListener("canplay", handleCanPlay);
+      el.removeEventListener("error", handleError);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isFullscreen) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") exitFullscreen();
+      if (e.key === "Escape") setIsFullscreen(false);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen]);
 
   useEffect(() => {
@@ -77,31 +137,6 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
       };
     }
   }, [isFullscreen]);
-
-  // Restore playback position + play state right after the <video>
-  // element remounts in its new location (inline <-> portal).
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    el.currentTime = savedTimeRef.current;
-    if (wasPlayingRef.current) {
-      el.play().catch(() => {});
-    }
-  }, [isFullscreen]);
-
-  function enterFullscreen() {
-    const el = videoRef.current;
-    savedTimeRef.current = el?.currentTime ?? 0;
-    wasPlayingRef.current = isPlaying;
-    setIsFullscreen(true);
-  }
-
-  function exitFullscreen() {
-    const el = videoRef.current;
-    savedTimeRef.current = el?.currentTime ?? 0;
-    wasPlayingRef.current = isPlaying;
-    setIsFullscreen(false);
-  }
 
   function togglePlay() {
     const el = videoRef.current;
@@ -130,22 +165,6 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
     el.currentTime = (percent / 100) * el.duration;
   }
 
-  const videoEl = (
-    <video
-      ref={videoRef}
-      src={video.src}
-      poster={video.poster || undefined}
-      className={
-        isFullscreen ? "h-full w-full bg-black object-contain" : "h-full w-full object-cover"
-      }
-      playsInline
-      preload="metadata"
-      disablePictureInPicture
-      controlsList="nodownload noplaybackrate noremoteplayback"
-      onEnded={() => setIsPlaying(false)}
-    />
-  );
-
   const controls = (
     <VHSControls
       isPlaying={isPlaying}
@@ -155,94 +174,130 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
       onTogglePlay={togglePlay}
       onToggleMute={toggleMute}
       onSeek={seek}
-      onToggleFullscreen={() => (isFullscreen ? exitFullscreen() : enterFullscreen())}
+      onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
     />
   );
 
+  // Inline styles for the portaled video wrapper — either pinned over the
+  // docked placeholder (via measured rect) or pinned fullscreen.
+  const portalWrapperStyle: React.CSSProperties = isFullscreen
+    ? {
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+      }
+    : dockRect
+    ? {
+        position: "fixed",
+        top: dockRect.top,
+        left: dockRect.left,
+        width: dockRect.width,
+        height: dockRect.height,
+        zIndex: 1,
+        borderRadius: "0.5rem",
+        overflow: "hidden",
+      }
+    : { display: "none" };
+
   return (
     <>
-      {/* Inline card. Stays in the layout (not unmounted) while fullscreen
-          is open, just visually hidden, so the grid doesn't reflow. */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: EASE.smooth }}
+      {/* Placeholder that reserves layout space in the grid. The real
+          <video> is portaled on top of this via measured coordinates. */}
+      <div
+        ref={dockRef}
         className="vhs-scanlines relative mx-auto aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl shadow-black/60"
-        style={isFullscreen ? { visibility: "hidden" } : undefined}
       >
         <div className="absolute right-4 top-4 z-[4] font-mono text-xs tracking-wider text-white/70">
           {video.dateLabel}
         </div>
-
-        {!isFullscreen && videoEl}
-
-        {showStatic && !isFullscreen && (
-          <div className="absolute inset-0 z-[5] animate-pulse bg-white/10 mix-blend-overlay" />
-        )}
-
-        <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.5)_100%)]" />
-
         <div className="absolute bottom-16 left-4 z-[4] font-body text-sm text-white/80">
           {video.title}
         </div>
+        {!isFullscreen && <div className="absolute bottom-0 left-0 right-0 z-[4]">{controls}</div>}
+      </div>
 
-        {!isFullscreen && (
-          <div className="absolute bottom-0 left-0 right-0 z-[4]">{controls}</div>
-        )}
-      </motion.div>
-
-      {/* Fullscreen modal — portaled straight to document.body */}
+      {/* Single persistent <video>, portaled to document.body, repositioned via CSS only. */}
       {mounted &&
         createPortal(
-          <AnimatePresence>
+          <div style={portalWrapperStyle} className="pointer-events-none">
             {isFullscreen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: EASE.smooth }}
-                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md md:p-10"
-                onClick={exitFullscreen}
+                className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-black/95 p-4 backdrop-blur-md md:p-10"
+                onClick={() => setIsFullscreen(false)}
               >
                 <button
                   data-cursor="hover"
-                  onClick={exitFullscreen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFullscreen(false);
+                  }}
                   className="absolute right-6 top-6 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-archive-gold/60 hover:text-archive-gold"
                   aria-label="اغلاق"
                 >
                   <X size={20} />
                 </button>
-
-                <motion.div
-                  initial={{ scale: 0.92, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  transition={{ duration: 0.35, ease: EASE.smooth }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="vhs-scanlines relative aspect-video w-full max-w-6xl overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl shadow-black/60"
-                >
-                  <div className="absolute right-4 top-4 z-[4] font-mono text-xs tracking-wider text-white/70">
-                    {video.dateLabel}
-                  </div>
-
-                  {isFullscreen && videoEl}
-
-                  {showStatic && isFullscreen && (
-                    <div className="absolute inset-0 z-[5] animate-pulse bg-white/10 mix-blend-overlay" />
-                  )}
-
-                  <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.5)_100%)]" />
-
-                  <div className="absolute bottom-16 left-4 z-[4] font-body text-sm text-white/80">
-                    {video.title}
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 right-0 z-[4]">{controls}</div>
-                </motion.div>
               </motion.div>
             )}
-          </AnimatePresence>,
+
+            <div
+              className={
+                isFullscreen
+                  ? "vhs-scanlines pointer-events-auto absolute left-1/2 top-1/2 aspect-video w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl shadow-black/60 md:w-[calc(100%-5rem)]"
+                  : "pointer-events-auto relative h-full w-full"
+              }
+              onClick={(e) => isFullscreen && e.stopPropagation()}
+            >
+              <video
+                ref={videoRef}
+                src={video.src}
+                poster={video.poster || undefined}
+                className={
+                  isFullscreen ? "h-full w-full bg-black object-contain" : "h-full w-full object-cover"
+                }
+                playsInline
+                preload="metadata"
+                disablePictureInPicture
+                controlsList="nodownload noplaybackrate noremoteplayback"
+                onEnded={() => setIsPlaying(false)}
+              />
+
+              {isLoading && !hasError && (
+                <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/30">
+                  <Loader2 size={28} className="animate-spin text-archive-gold/80" />
+                </div>
+              )}
+
+              {hasError && (
+                <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/60">
+                  <span className="font-mono text-xs text-white/50">تعذر تحميل الفيديو</span>
+                </div>
+              )}
+
+              {showStatic && (
+                <div className="pointer-events-none absolute inset-0 z-[5] animate-pulse bg-white/10 mix-blend-overlay" />
+              )}
+
+              <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.5)_100%)]" />
+
+              {isFullscreen && (
+                <>
+                  <div className="pointer-events-none absolute right-4 top-4 z-[4] font-mono text-xs tracking-wider text-white/70">
+                    {video.dateLabel}
+                  </div>
+                  <div className="pointer-events-none absolute bottom-16 left-4 z-[4] font-body text-sm text-white/80">
+                    {video.title}
+                  </div>
+                  <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[4]">
+                    {controls}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>,
           document.body
         )}
     </>

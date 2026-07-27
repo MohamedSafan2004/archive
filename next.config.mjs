@@ -20,6 +20,24 @@ const nextConfig = {
     // Cache optimized images for a year — they don't change once uploaded
     minimumCacheTTL: 31536000,
   },
+  async headers() {
+    return [
+      {
+        // Videos and their poster JPGs never change once deployed, so let
+        // the browser (and any CDN in front of it) cache them hard. This
+        // matters most for the VHS section: once a video is opened once,
+        // re-opening it (or scrolling back to it) is instant instead of
+        // re-fetching from the network.
+        source: "/videos/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
