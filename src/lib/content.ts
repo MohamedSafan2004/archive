@@ -23,7 +23,7 @@ export const GATE_QUESTIONS: GateQuestion[] = [
   {
     id: "q2",
     question: "لعبتك المفضلة",
-    acceptedAnswers: ["الدن رينج","Elden Ring","elden ring", "Elden ring","ب"],
+    acceptedAnswers: ["الدن رينج","Elden Ring","elden ring", "Elden ring","Elden","elden","الدن"],
     hint: "لعبة مازوخية",
   },
   {
@@ -104,7 +104,7 @@ export const MEMORIES: MemoryEntry[] = [
     title: "الأوقات الصعبة",
     description: "لما الدنيا كانت وحشة، كنت جنبي.",
     transitionVariant: "parallax-stack",
-    photos: [{ id: "p6", src: "/images/photo_6_2026-07-20_21-42-06.jpg", alt: "ذكرى 2021" }],
+    photos: [{ id: "p6", src: "/images/photo_6_2026-07-20_21-42-06.jpg", alt: "ذكرى 2021", focalPoint: "center 15%" }],
   },
   {
     id: "memory-4",
@@ -114,7 +114,7 @@ export const MEMORIES: MemoryEntry[] = [
     transitionVariant: "reveal-slide",
     photos: [
       { id: "p7", src: "/images/photo_2_2026-07-26_02-34-12.jpg", alt: "ذكرى 2026" },
-      { id: "p8", src: "/images/photo_48_2026-07-20_21-42-06.jpg", alt: "ذكرى 2026" },
+      { id: "p8", src: "/images/photo_48_2026-07-20_21-42-06.jpg", alt: "ذكرى 2026", focalPoint: "center top" },
     ],
   },
   {
@@ -204,7 +204,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: "egg-idle",
     trigger: "hover-hold",
     title: "لسه واقف؟",
-    content: "لسه واقف مستني حاجة تحصل؟ يلا كمل، فيه كتير لسه.",
+    content: "قاعد بتتأمل يا زميليييي؟",
     isUnlocked: false,
   },
   {

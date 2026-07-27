@@ -1,11 +1,60 @@
 "use client";
 
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Film } from "lucide-react";
 import { VHS_VIDEOS } from "@/lib/content";
 import { useExperienceStore } from "@/store/experienceStore";
 import { EASE } from "@/lib/constants";
 import { VHSPlayer } from "./VHSPlayer";
+
+/**
+ * Wraps a VHSPlayer so its <video> element (and the browser's metadata
+ * request that comes with it) doesn't exist in the DOM at all until the
+ * card is actually near the viewport. With 20 videos on one page, mounting
+ * every <video preload="metadata"> tag immediately meant 20 simultaneous
+ * network requests firing the moment the section appeared — that's what
+ * caused the freeze. Now only cards close to the visible area ever mount
+ * their <video>, so the browser only ever has a handful of requests
+ * in flight regardless of how many videos are in the archive.
+ */
+function LazyVHSSlot({ video }: { video: (typeof VHS_VIDEOS)[number] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shouldMount, setShouldMount] = useState(false);
+
+  useEffect(() => {
+    if (shouldMount) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldMount(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" } // start mounting a bit before it's on screen
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [shouldMount]);
+
+  return (
+    <div ref={ref} className="aspect-video w-full">
+      {shouldMount ? (
+        <VHSPlayer video={video} />
+      ) : (
+        <div className="vhs-scanlines flex h-full w-full items-center justify-center rounded-lg border border-white/10 bg-black/40">
+          <span className="font-mono text-xs tracking-widest text-white/30">
+            {video.dateLabel}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function VHSArchive() {
   const stage = useExperienceStore((s) => s.stage);
@@ -33,9 +82,7 @@ export function VHSArchive() {
         </p>
       </div>
 
-      {/* Videos grid — one column on mobile, two on larger screens.
-          Only two videos ever render at once per row, so decode cost
-          stays low even though these are heavier files than photos. */}
+      {/* Videos grid — each slot mounts its <video> lazily as it nears view */}
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 md:grid-cols-2 md:gap-8">
         {VHS_VIDEOS.map((video, index) => (
           <motion.div
@@ -45,7 +92,7 @@ export function VHSArchive() {
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.7, delay: (index % 4) * 0.08, ease: EASE.smooth }}
           >
-            <VHSPlayer video={video} />
+            <LazyVHSSlot video={video} />
           </motion.div>
         ))}
       </div>

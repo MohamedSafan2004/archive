@@ -43,7 +43,10 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
       id={`chapter-${memory.id}`}
       className="relative flex min-h-[100vh] items-center overflow-hidden py-24"
     >
-      {/* Parallax hero background — clickable to open fullscreen */}
+      {/* Parallax hero background — clickable to open fullscreen.
+          focalPoint (if set on the photo) re-frames the crop so a
+          specific subject (e.g. a person's face) stays visible instead
+          of the default dead-center crop. */}
       {heroPhoto && (
         <FullscreenImage
           src={heroPhoto.src}
@@ -59,6 +62,7 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
               quality={85}
               priority={index === 0}
               className="object-cover"
+              style={{ objectPosition: heroPhoto.focalPoint || "center" }}
             />
           </motion.div>
         </FullscreenImage>
@@ -86,12 +90,14 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
           {memory.description}
         </p>
 
-        {/* Filmstrip of any additional photos for this memory — each one
-            also opens fullscreen on click */}
+        {/* Filmstrip of any additional photos for this memory — sized much
+            larger now (was a cramped w-24 thumbnail strip) so each photo
+            actually shows meaningful content instead of a tiny sliver.
+            object-contain keeps the full photo visible with no cropping. */}
         {secondaryPhotos.length > 0 && (
           <div
             className={cn(
-              "mt-10 flex gap-3 overflow-x-auto pb-2",
+              "mt-10 flex flex-wrap gap-4",
               isEven ? "md:justify-end" : "md:justify-start"
             )}
           >
@@ -100,14 +106,15 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
                 key={photo.id}
                 src={photo.src}
                 alt={photo.alt}
-                className="vhs-scanlines relative aspect-[3/4] w-24 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border border-white/10 shadow-xl transition-transform duration-300 hover:scale-105 md:w-28"
+                className="vhs-scanlines relative aspect-[4/5] w-40 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-black/40 shadow-xl transition-transform duration-300 hover:scale-105 sm:w-48 md:w-56"
               >
                 <Image
                   src={photo.src}
                   alt={photo.alt}
                   fill
-                  sizes="120px"
-                  className="object-cover"
+                  sizes="(max-width: 768px) 200px, 224px"
+                  className="object-contain"
+                  style={{ objectPosition: photo.focalPoint || "center" }}
                 />
               </FullscreenImage>
             ))}

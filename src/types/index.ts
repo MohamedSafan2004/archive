@@ -30,6 +30,9 @@ export interface MemoryPhoto {
   src: string;
   alt: string;
   caption?: string;
+  /** CSS object-position value, e.g. "center 20%" or "top". Lets a specific
+   * photo be re-framed inside its cropped container without touching layout. */
+  focalPoint?: string;
 }
 
 export interface MemoryEntry {

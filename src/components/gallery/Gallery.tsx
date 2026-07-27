@@ -8,6 +8,7 @@ import { EASE } from "@/lib/constants";
 import { GalleryPhotoCard } from "./Galleryphotocard";
 import { GalleryLightbox } from "./Gallerylightbox";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { ScrollToTopButton } from "@/components/ui/ScrollToTopButton";
 
 const PAGE_SIZE = 18;
 
@@ -75,6 +76,8 @@ export function Gallery() {
         onClose={() => setActiveIndex(null)}
         onNavigate={setActiveIndex}
       />
+
+      <ScrollToTopButton />
     </motion.section>
   );
 }
