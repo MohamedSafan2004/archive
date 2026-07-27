@@ -68,9 +68,20 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
         </FullscreenImage>
       )}
 
-      {/* Dark cinematic gradient so text stays readable over any photo */}
-      <div className="pointer-events-none absolute inset-0 -z-[5] bg-gradient-to-t from-black via-black/60 to-black/30" />
-      <div className="pointer-events-none absolute inset-0 -z-[5] bg-gradient-to-b from-black/40 via-transparent to-black/50" />
+      {/* Dark cinematic gradient so text stays readable over any photo.
+          Layered radial + directional gradients (not a flat linear fade)
+          for a richer, more intentional vignette instead of a plain
+          top-to-bottom darken. */}
+      <div className="pointer-events-none absolute inset-0 -z-[5] bg-gradient-to-t from-black via-black/55 to-black/20" />
+      <div className="pointer-events-none absolute inset-0 -z-[5] bg-gradient-to-b from-black/50 via-transparent to-transparent" />
+      <div
+        className="pointer-events-none absolute inset-0 -z-[5]"
+        style={{
+          background: isEven
+            ? "radial-gradient(ellipse 70% 90% at 25% 60%, rgba(0,0,0,0.65) 0%, transparent 60%)"
+            : "radial-gradient(ellipse 70% 90% at 75% 60%, rgba(0,0,0,0.65) 0%, transparent 60%)",
+        }}
+      />
 
       {/* Text content, scroll-linked fade */}
       <motion.div
@@ -90,10 +101,10 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
           {memory.description}
         </p>
 
-        {/* Filmstrip of any additional photos for this memory — sized much
-            larger now (was a cramped w-24 thumbnail strip) so each photo
-            actually shows meaningful content instead of a tiny sliver.
-            object-contain keeps the full photo visible with no cropping. */}
+        {/* Filmstrip of any additional photos for this memory. Landscape
+            aspect ratio (16/10) matches how most of these photos were shot,
+            so object-contain doesn't have to shrink them down to fit a tall
+            frame — that's what made this look cropped/tiny before. */}
         {secondaryPhotos.length > 0 && (
           <div
             className={cn(
@@ -106,13 +117,13 @@ export function TimelineChapter({ memory, index }: TimelineChapterProps) {
                 key={photo.id}
                 src={photo.src}
                 alt={photo.alt}
-                className="vhs-scanlines relative aspect-[4/5] w-40 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-black/40 shadow-xl transition-transform duration-300 hover:scale-105 sm:w-48 md:w-56"
+                className="vhs-scanlines relative aspect-[16/10] w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-black/40 shadow-xl transition-transform duration-300 hover:scale-105 sm:w-80 md:w-96"
               >
                 <Image
                   src={photo.src}
                   alt={photo.alt}
                   fill
-                  sizes="(max-width: 768px) 200px, 224px"
+                  sizes="(max-width: 768px) 320px, 384px"
                   className="object-contain"
                   style={{ objectPosition: photo.focalPoint || "center" }}
                 />
