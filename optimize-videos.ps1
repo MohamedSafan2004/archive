@@ -4,6 +4,11 @@
 # for most/all of the file to arrive first. Also generates a poster.jpg
 # for each video so the card shows an image immediately instead of black.
 #
+# SAFE TO RE-RUN: skips any video that already has a poster.jpg (meaning
+# it was already processed in a previous run), so you can add new videos
+# to public/videos and just run this again -- only the new ones get
+# touched.
+#
 # Usage:
 #   cd D:\birthday-experience\birthday-experience
 #   powershell -ExecutionPolicy Bypass -File optimize-videos.ps1
@@ -38,16 +43,35 @@ Write-Host "OK: ffmpeg found at $($ffmpeg.Source)" -ForegroundColor Green
 
 New-Item -ItemType Directory -Force -Path $postersDir | Out-Null
 
-$videoFiles = Get-ChildItem -Path $videosDir -File | Where-Object {
+$allVideoFiles = Get-ChildItem -Path $videosDir -File | Where-Object {
     $_.Extension -match '\.(mp4|mov|MP4|MOV)$'
 }
 
-if ($videoFiles.Count -eq 0) {
+if ($allVideoFiles.Count -eq 0) {
     Write-Host "ERROR: no videos found in public\videos" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Found $($videoFiles.Count) videos. Starting processing..." -ForegroundColor Cyan
+# Only process videos that don't already have a poster (i.e. new additions).
+# This makes the script safe to re-run after adding new videos without
+# wasting time (or accidentally double-processing) the ones already done.
+$videoFiles = $allVideoFiles | Where-Object {
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+    $posterPath = Join-Path $postersDir "$baseName.jpg"
+    -not (Test-Path $posterPath)
+}
+
+$skippedCount = $allVideoFiles.Count - $videoFiles.Count
+if ($skippedCount -gt 0) {
+    Write-Host "Skipping $skippedCount already-processed video(s) (poster already exists)." -ForegroundColor DarkGray
+}
+
+if ($videoFiles.Count -eq 0) {
+    Write-Host "Nothing new to process. Every video already has a poster." -ForegroundColor Green
+    exit 0
+}
+
+Write-Host "Found $($videoFiles.Count) new video(s) to process..." -ForegroundColor Cyan
 Write-Host ""
 
 $tempDir = Join-Path $videosDir "_tmp_optimized"
@@ -122,7 +146,7 @@ foreach ($file in $videoFiles) {
 Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "Done: $successCount videos processed successfully, $failCount failed." -ForegroundColor Green
+Write-Host "Done: $successCount video(s) processed successfully, $failCount failed." -ForegroundColor Green
 Write-Host "Posters are in public\videos\posters\" -ForegroundColor Green
 
 if ($renamedFiles.Count -gt 0) {
@@ -131,8 +155,8 @@ if ($renamedFiles.Count -gt 0) {
     foreach ($r in $renamedFiles) {
         Write-Host "    $($r.Old)  ->  $($r.New)" -ForegroundColor Yellow
     }
-    Write-Host "If these aren't referenced in content.ts this doesn't matter. Otherwise let me know and I'll update the names." -ForegroundColor Yellow
+    Write-Host "Tell Claude the new filenames so content.ts can be updated." -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "Next: content.ts already points to public\videos\posters\<name>.jpg for each video." -ForegroundColor Yellow
+Write-Host "Next: add the new video filenames to src/lib/content.ts (ask Claude to do it)." -ForegroundColor Yellow

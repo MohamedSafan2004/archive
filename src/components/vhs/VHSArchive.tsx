@@ -11,35 +11,38 @@ import { VHSPlayer } from "./VHSPlayer";
 /**
  * Wraps a VHSPlayer so its <video> element (and the browser's metadata
  * request that comes with it) doesn't exist in the DOM at all until the
- * card is actually near the viewport. With 20 videos on one page, mounting
- * every <video preload="metadata"> tag immediately meant 20 simultaneous
- * network requests firing the moment the section appeared — that's what
- * caused the freeze. Now only cards close to the visible area ever mount
- * their <video>, so the browser only ever has a handful of requests
- * in flight regardless of how many videos are in the archive.
+ * card is actually near the viewport.
+ *
+ * PERFORMANCE FIX: the previous rootMargin of "600px" was far too generous
+ * for a 2-column grid of 20 videos — on a typical screen it caused 3-4 full
+ * rows (6-8 <video> tags) to mount simultaneously the instant the section
+ * came into view, firing 6-8 concurrent metadata requests at once. That's
+ * what looked like "everything loading slowly at the same time." Shrinking
+ * the margin to "150px" means only the row that's actually about to be
+ * seen mounts ahead of time — typically 2 videos, occasionally 4 during a
+ * fast scroll. Combined with unmounting cards once they scroll far out of
+ * view (below), the number of <video> tags alive at any moment stays small
+ * regardless of how many videos are in the archive.
  */
 function LazyVHSSlot({ video }: { video: (typeof VHS_VIDEOS)[number] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [shouldMount, setShouldMount] = useState(false);
 
   useEffect(() => {
-    if (shouldMount) return;
     const el = ref.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setShouldMount(true);
-          observer.disconnect();
-        }
+        const isNear = entries[0]?.isIntersecting ?? false;
+        setShouldMount(isNear);
       },
-      { rootMargin: "600px 0px" } // start mounting a bit before it's on screen
+      { rootMargin: "150px 0px" }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [shouldMount]);
+  }, []);
 
   return (
     <div ref={ref} className="aspect-video w-full">
@@ -78,7 +81,7 @@ export function VHSArchive() {
           تسجيلات من زمان
         </h1>
         <p className="mx-auto mt-4 max-w-md font-body text-archive-muted">
-          {VHS_VIDEOS.length} شرائط محفوظة. دوس تشغيل على أي واحد.
+          {VHS_VIDEOS.length} شرائط محفوظة
         </p>
       </div>
 
