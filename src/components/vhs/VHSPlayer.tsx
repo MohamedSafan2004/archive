@@ -279,9 +279,7 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
                 preload="metadata"
                 disablePictureInPicture
                 controlsList="nodownload noplaybackrate noremoteplayback"
-                onClick={() => {
-                  if (!isFullscreen) togglePlay();
-                }}
+                onClick={togglePlay}
                 onEnded={() => setIsPlaying(false)}
               />
 
@@ -290,8 +288,11 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
                 {video.dateLabel}
               </div>
 
-              {/* Big centered play button, shown whenever paused */}
-              {!isPlaying && (
+              {/* Big centered play button -- only in the docked (non-fullscreen)
+                  view. In fullscreen it would sit on top of the whole frame
+                  and block clicking the video itself to pause, so fullscreen
+                  relies on the video's own onClick above instead. */}
+              {!isPlaying && !isFullscreen && (
                 <button
                   data-cursor="hover"
                   onClick={togglePlay}
