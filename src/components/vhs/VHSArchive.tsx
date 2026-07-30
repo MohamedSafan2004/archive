@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Film } from "lucide-react";
 import { VHS_VIDEOS } from "@/lib/content";
@@ -9,58 +9,107 @@ import { EASE } from "@/lib/constants";
 import { VHSPlayer } from "./VHSPlayer";
 
 /**
- * Wraps a VHSPlayer so its <video> element (and the browser's metadata
- * request that comes with it) doesn't exist in the DOM at all until the
- * card is actually near the viewport.
+ * One reel in the archive.
  *
- * PERFORMANCE FIX: the previous rootMargin of "600px" was far too generous
- * for a 2-column grid of 20 videos — on a typical screen it caused 3-4 full
- * rows (6-8 <video> tags) to mount simultaneously the instant the section
- * came into view, firing 6-8 concurrent metadata requests at once. That's
- * what looked like "everything loading slowly at the same time." Shrinking
- * the margin to "150px" means only the row that's actually about to be
- * seen mounts ahead of time — typically 2 videos, occasionally 4 during a
- * fast scroll. Combined with unmounting cards once they scroll far out of
- * view (below), the number of <video> tags alive at any moment stays small
- * regardless of how many videos are in the archive.
+ * PERFORMANCE: the <video> element for this reel does not exist in the DOM
+ * at all until the reel is near the viewport ("armed"), and it's torn down
+ * again once the reel scrolls far away ("retired"). At most 1-2 reels are
+ * ever armed at once, regardless of how many videos are in the archive --
+ * a fast scroll through 23 videos still only ever mounts a couple of
+ * <video> tags, not all of them.
+ *
+ * isCentered additionally tracks whether this specific reel is the one
+ * currently commanding the person's attention (roughly centered in the
+ * viewport). Only the centered reel is allowed to autoplay -- this is what
+ * turns scrolling into "waking a memory up" one at a time, instead of a
+ * wall of videos all trying to play together.
  */
-function LazyVHSSlot({ video }: { video: (typeof VHS_VIDEOS)[number] }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shouldMount, setShouldMount] = useState(false);
+function ArchiveReel({
+  video,
+  index,
+  total,
+}: {
+  video: (typeof VHS_VIDEOS)[number];
+  index: number;
+  total: number;
+}) {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [armed, setArmed] = useState(false);
+  const [isCentered, setIsCentered] = useState(false);
 
+  // Mount/unmount the player as the reel nears or leaves the viewport.
   useEffect(() => {
-    const el = ref.current;
+    const el = sectionRef.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
-      (entries) => {
-        const isNear = entries[0]?.isIntersecting ?? false;
-        setShouldMount(isNear);
-      },
-      { rootMargin: "150px 0px" }
+      (entries) => setArmed(entries[0]?.isIntersecting ?? false),
+      { rootMargin: "200px 0px" }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
+  // Track whether this reel is the one centered in the viewport -- a much
+  // tighter margin than "armed" above, so only one reel is ever centered
+  // at a time even while several sit armed nearby.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsCentered((entry?.intersectionRatio ?? 0) > 0.6),
+      { threshold: [0, 0.6, 1] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const romanIndex = String(index + 1).padStart(2, "0");
+
   return (
-    <div ref={ref} className="aspect-video w-full">
-      {shouldMount ? (
-        <VHSPlayer video={video} />
-      ) : (
-        <div className="vhs-scanlines flex h-full w-full items-center justify-center rounded-lg border border-white/10 bg-black/40">
-          <span className="font-mono text-xs tracking-widest text-white/30">
-            {video.dateLabel}
-          </span>
-        </div>
-      )}
+    <div
+      ref={sectionRef}
+      className="relative flex min-h-[85vh] w-full items-center justify-center px-4 py-16 md:min-h-screen md:px-8"
+    >
+      {/* Reel number + progress mark -- a quiet spine running through the
+          archive so the person can feel how far they've traveled, without
+          it ever reading as a UI element like a progress bar. */}
+      <div className="pointer-events-none absolute left-4 top-1/2 hidden -translate-y-1/2 flex-col items-center gap-3 md:left-10 md:flex">
+        <span className="font-mono text-xs tracking-widest text-archive-muted/50">
+          {romanIndex}
+        </span>
+        <div className="h-16 w-px bg-gradient-to-b from-archive-gold/40 via-white/10 to-transparent" />
+        <span className="font-mono text-[10px] tracking-widest text-archive-muted/30">
+          {String(total).padStart(2, "0")}
+        </span>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 40, scale: 0.97 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: "-15%" }}
+        transition={{ duration: 0.9, ease: EASE.smooth }}
+        className="aspect-video w-full max-w-4xl"
+      >
+        {armed ? (
+          <VHSPlayer video={video} autoPlayWhenReady={isCentered} />
+        ) : (
+          <div className="vhs-scanlines flex h-full w-full items-center justify-center rounded-xl border border-white/10 bg-black/40">
+            <span className="font-mono text-xs tracking-widest text-white/25">
+              {video.dateLabel}
+            </span>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }
 
 export function VHSArchive() {
   const stage = useExperienceStore((s) => s.stage);
+
+  // Stable list reference so the reels below don't remount on unrelated
+  // re-renders of this component.
+  const videos = useMemo(() => VHS_VIDEOS, []);
 
   if (stage !== "vhs") return null;
 
@@ -69,36 +118,26 @@ export function VHSArchive() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, ease: EASE.smooth }}
-      className="relative min-h-screen px-6 py-24 md:px-12"
+      className="relative"
     >
-      {/* Header */}
-      <div className="mx-auto mb-14 max-w-2xl text-center">
-        <p className="mb-4 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-[0.35em] text-archive-gold">
+      {/* Intro -- sets the tone before the first reel, rather than a
+          dashboard-style header sitting above a grid. */}
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center md:px-12">
+        <p className="mb-5 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-[0.4em] text-archive-gold">
           <Film size={14} />
           الأرشيف المرئي
         </p>
-        <h1 className="font-display text-5xl leading-[1.1] tracking-tight text-archive-text md:text-6xl">
+        <h1 className="font-display text-4xl leading-[1.15] tracking-tight text-archive-text md:text-6xl">
           تسجيلات من زمان
         </h1>
-        <p className="mx-auto mt-4 max-w-md font-body text-archive-muted">
-          {VHS_VIDEOS.length} شرائط محفوظة
+        <p className="mx-auto mt-5 max-w-md font-body text-archive-muted">
+          {videos.length} شريط محفوظ. اتفرج عليهم واحد واحد.
         </p>
       </div>
 
-      {/* Videos grid — each slot mounts its <video> lazily as it nears view */}
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 md:grid-cols-2 md:gap-8">
-        {VHS_VIDEOS.map((video, index) => (
-          <motion.div
-            key={video.id}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7, delay: (index % 4) * 0.08, ease: EASE.smooth }}
-          >
-            <LazyVHSSlot video={video} />
-          </motion.div>
-        ))}
-      </div>
+      {videos.map((video, index) => (
+        <ArchiveReel key={video.id} video={video} index={index} total={videos.length} />
+      ))}
     </motion.section>
   );
 }

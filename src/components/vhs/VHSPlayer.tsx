@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Play } from "lucide-react";
 import type { VHSVideo } from "@/types";
 import { EASE } from "@/lib/constants";
 import { VHSControls } from "./VHSControls";
@@ -16,34 +16,32 @@ interface VHSPlayerProps {
  * VHS frame with a fullscreen toggle.
  *
  * PERFORMANCE NOTE — single <video> element, never remounted:
- * The old version rendered two separate <video> tags (one inline, one inside
- * the fullscreen portal) and swapped which one was in the DOM. Every swap
- * forced the browser to throw away its buffered data and start a brand new
- * network request from 0:00 — that's what caused the stutter/re-buffering
- * when opening fullscreen. Now there is exactly ONE <video> element for the
- * entire lifetime of this component. It always lives inside a portal
- * attached to document.body, and we move it between "docked" (sitting
- * inline in the grid, positioned absolutely over a placeholder box) and
- * "fullscreen" (fixed, covering the viewport) purely via CSS. The browser
- * never re-requests the source, so playback position and buffered data
- * survive the transition perfectly.
+ * There is exactly ONE <video> element for the entire lifetime of this
+ * component. It always lives inside a portal attached to document.body,
+ * and we move it between "docked" (sitting inline over its placeholder)
+ * and "fullscreen" (fixed, covering the viewport) purely via CSS. The
+ * browser never re-requests the source, so playback position and
+ * buffered data survive the transition perfectly.
  *
- * We portal to document.body (rather than rendering the video directly in
- * the card) because any ancestor with a CSS `transform` — common with
- * Framer Motion wrappers like the grid/section around this card — turns
- * `position: fixed` into behaving like `absolute` relative to that
- * ancestor instead of the viewport. Portaling sidesteps that entirely.
+ * We portal to document.body rather than rendering the video directly in
+ * the card because any ancestor with a CSS `transform` (Framer Motion
+ * wrappers around this card) turns `position: fixed` into behaving like
+ * `absolute` relative to that ancestor instead of the viewport.
  *
- * We track the docked card's on-screen position with getBoundingClientRect
- * and sync it to the portaled video's inline style on scroll/resize, so it
- * looks like it's sitting inside the card even though it technically lives
- * at the end of <body>.
+ * autoPlayWhenReady: when true (the reel currently centered in view), the
+ * video attempts to play muted the moment it's mounted -- this is what
+ * makes scrolling through the archive feel like memories waking up on
+ * their own, without needing a click. The person can always tap to
+ * unmute or pause; nothing here fights their control.
  */
-export function VHSPlayer({ video }: VHSPlayerProps) {
+export function VHSPlayer({
+  video,
+  autoPlayWhenReady = false,
+}: VHSPlayerProps & { autoPlayWhenReady?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
   const [showStatic, setShowStatic] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -96,6 +94,10 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
     }
     function handlePlaying() {
       setIsLoading(false);
+      setIsPlaying(true);
+    }
+    function handlePause() {
+      setIsPlaying(false);
     }
     function handleCanPlay() {
       setIsLoading(false);
@@ -108,16 +110,39 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
     el.addEventListener("timeupdate", handleTimeUpdate);
     el.addEventListener("waiting", handleWaiting);
     el.addEventListener("playing", handlePlaying);
+    el.addEventListener("pause", handlePause);
     el.addEventListener("canplay", handleCanPlay);
     el.addEventListener("error", handleError);
     return () => {
       el.removeEventListener("timeupdate", handleTimeUpdate);
       el.removeEventListener("waiting", handleWaiting);
       el.removeEventListener("playing", handlePlaying);
+      el.removeEventListener("pause", handlePause);
       el.removeEventListener("canplay", handleCanPlay);
       el.removeEventListener("error", handleError);
     };
   }, []);
+
+  // Gentle autoplay when this reel becomes the centered one in the archive.
+  // Muted autoplay is allowed by every browser without a user gesture, so
+  // this is what makes the memory feel like it wakes up as you arrive at
+  // it -- no click required to see it move.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !autoPlayWhenReady) return;
+    el.muted = true;
+    setIsMuted(true);
+    el.play().catch(() => {
+      /* browser declined autoplay; person can press play manually */
+    });
+  }, [autoPlayWhenReady]);
+
+  useEffect(() => {
+    if (!autoPlayWhenReady) {
+      const el = videoRef.current;
+      if (el && !el.paused) el.pause();
+    }
+  }, [autoPlayWhenReady]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -149,7 +174,6 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
       setTimeout(() => setShowStatic(false), 200);
       el.play().catch(() => {});
     }
-    setIsPlaying(!isPlaying);
   }
 
   function toggleMute() {
@@ -178,14 +202,8 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
     />
   );
 
-  // Inline styles for the portaled video wrapper — either pinned over the
-  // docked placeholder (via measured rect) or pinned fullscreen.
   const portalWrapperStyle: React.CSSProperties = isFullscreen
-    ? {
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-      }
+    ? { position: "fixed", inset: 0, zIndex: 100 }
     : dockRect
     ? {
         position: "fixed",
@@ -194,29 +212,43 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
         width: dockRect.width,
         height: dockRect.height,
         zIndex: 1,
-        borderRadius: "0.5rem",
+        borderRadius: "0.75rem",
         overflow: "hidden",
       }
     : { display: "none" };
 
   return (
     <>
-      {/* Placeholder that reserves layout space in the grid. The real
-          <video> is portaled on top of this via measured coordinates. */}
       <div
         ref={dockRef}
-        className="vhs-scanlines relative mx-auto aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl shadow-black/60"
+        className="vhs-scanlines relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl shadow-black/60"
+        onClick={() => {
+          if (!isPlaying) togglePlay();
+        }}
       >
-        <div className="absolute right-4 top-4 z-[4] font-mono text-xs tracking-wider text-white/70">
+        <div className="pointer-events-none absolute right-5 top-5 z-[4] font-mono text-[11px] tracking-[0.2em] text-white/60">
           {video.dateLabel}
         </div>
-        <div className="absolute bottom-16 left-4 z-[4] font-body text-sm text-white/80">
+        {!isPlaying && !isFullscreen && (
+          <div
+            data-cursor="hover"
+            className="pointer-events-none absolute inset-0 z-[4] flex items-center justify-center"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/25 bg-black/30 backdrop-blur-sm transition-transform">
+              <Play size={22} className="ml-1 text-white/90" />
+            </div>
+          </div>
+        )}
+        <div className="pointer-events-none absolute bottom-20 left-5 z-[4] font-body text-sm text-white/80">
           {video.title}
         </div>
-        {!isFullscreen && <div className="absolute bottom-0 left-0 right-0 z-[4]">{controls}</div>}
+        {!isFullscreen && (
+          <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[4]">
+            {controls}
+          </div>
+        )}
       </div>
 
-      {/* Single persistent <video>, portaled to document.body, repositioned via CSS only. */}
       {mounted &&
         createPortal(
           <div style={portalWrapperStyle} className="pointer-events-none">
@@ -246,7 +278,7 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
             <div
               className={
                 isFullscreen
-                  ? "vhs-scanlines pointer-events-auto absolute left-1/2 top-1/2 aspect-video w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl shadow-black/60 md:w-[calc(100%-5rem)]"
+                  ? "vhs-scanlines pointer-events-auto absolute left-1/2 top-1/2 aspect-video w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl shadow-black/60 md:w-[calc(100%-5rem)]"
                   : "pointer-events-auto relative h-full w-full"
               }
               onClick={(e) => isFullscreen && e.stopPropagation()}
@@ -259,6 +291,7 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
                   isFullscreen ? "h-full w-full bg-black object-contain" : "h-full w-full object-cover"
                 }
                 playsInline
+                muted={isMuted}
                 preload="metadata"
                 disablePictureInPicture
                 controlsList="nodownload noplaybackrate noremoteplayback"
@@ -267,7 +300,7 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
 
               {isLoading && !hasError && (
                 <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/30">
-                  <Loader2 size={28} className="animate-spin text-archive-gold/80" />
+                  <Loader2 size={26} className="animate-spin text-archive-gold/80" />
                 </div>
               )}
 
@@ -281,14 +314,14 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
                 <div className="pointer-events-none absolute inset-0 z-[5] animate-pulse bg-white/10 mix-blend-overlay" />
               )}
 
-              <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.5)_100%)]" />
+              <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.55)_100%)]" />
 
               {isFullscreen && (
                 <>
-                  <div className="pointer-events-none absolute right-4 top-4 z-[4] font-mono text-xs tracking-wider text-white/70">
+                  <div className="pointer-events-none absolute right-5 top-5 z-[4] font-mono text-[11px] tracking-[0.2em] text-white/60">
                     {video.dateLabel}
                   </div>
-                  <div className="pointer-events-none absolute bottom-16 left-4 z-[4] font-body text-sm text-white/80">
+                  <div className="pointer-events-none absolute bottom-20 left-5 z-[4] font-body text-sm text-white/80">
                     {video.title}
                   </div>
                   <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[4]">
