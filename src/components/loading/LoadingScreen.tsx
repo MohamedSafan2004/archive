@@ -18,10 +18,32 @@ export function LoadingScreen() {
   const loadingProgress = useExperienceStore((s) => s.loadingProgress);
   const setLoadingProgress = useExperienceStore((s) => s.setLoadingProgress);
   const setStage = useExperienceStore((s) => s.setStage);
+  const isGateUnlocked = useExperienceStore((s) => s.isGateUnlocked);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (stage !== "loading") return;
+
+    // Returning visitor who already solved the gate before (persisted across
+    // refreshes) -- skip straight past the quiz screen into the archive
+    // instead of making them answer the inside jokes again every time they
+    // reload the page. A short, quick loading beat still plays so the
+    // transition doesn't feel abrupt.
+    if (isGateUnlocked) {
+      const counter = { value: 0 };
+      const tween = gsap.to(counter, {
+        value: 100,
+        duration: 1.2,
+        ease: "power1.inOut",
+        onUpdate: () => {
+          setLoadingProgress(Math.floor(counter.value));
+        },
+        onComplete: () => {
+          setTimeout(() => setStage("dashboard"), 300);
+        },
+      });
+      return () => tween.kill();
+    }
 
     const counter = { value: 0 };
     const tween = gsap.to(counter, {

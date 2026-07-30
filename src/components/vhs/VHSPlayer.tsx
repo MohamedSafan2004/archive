@@ -28,6 +28,14 @@ interface VHSPlayerProps {
  * wrappers around this card) turns `position: fixed` into behaving like
  * `absolute` relative to that ancestor instead of the viewport.
  *
+ * IMPORTANT — everything the person can see or click lives INSIDE the
+ * portal now (video, play overlay, controls, labels). Previously the
+ * controls were rendered in the small placeholder div instead, which sat
+ * *underneath* the portaled video in the same screen position -- the
+ * video visually covered the controls completely, making them
+ * unreachable even though the code "had" them. There must only ever be
+ * one visual layer here, and it must be the one the person can click.
+ *
  * Playback never starts on its own -- the person presses play. Autoplay
  * (even muted) was tried and pulled: it made the video try to play before
  * enough of it had downloaded to actually start, which left the loading
@@ -215,35 +223,15 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
 
   return (
     <>
+      {/* Placeholder that reserves layout space in the flow and gives the
+          portal something to measure. Purely structural now -- nothing
+          here is meant to be seen or clicked; the portal (below) renders
+          the video, the play button, and the controls, all in the exact
+          same screen position, so there is only one clickable layer. */}
       <div
         ref={dockRef}
         className="vhs-scanlines relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl shadow-black/60"
-        onClick={() => {
-          if (!isPlaying) togglePlay();
-        }}
-      >
-        <div className="pointer-events-none absolute right-5 top-5 z-[4] font-mono text-[11px] tracking-[0.2em] text-white/60">
-          {video.dateLabel}
-        </div>
-        {!isPlaying && !isFullscreen && (
-          <div
-            data-cursor="hover"
-            className="pointer-events-none absolute inset-0 z-[4] flex items-center justify-center"
-          >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/25 bg-black/30 backdrop-blur-sm transition-transform">
-              <Play size={22} className="ml-1 text-white/90" />
-            </div>
-          </div>
-        )}
-        <div className="pointer-events-none absolute bottom-20 left-5 z-[4] font-body text-sm text-white/80">
-          {video.title}
-        </div>
-        {!isFullscreen && (
-          <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[4]">
-            {controls}
-          </div>
-        )}
-      </div>
+      />
 
       {mounted &&
         createPortal(
@@ -275,7 +263,7 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
               className={
                 isFullscreen
                   ? "vhs-scanlines pointer-events-auto absolute left-1/2 top-1/2 aspect-video w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl shadow-black/60 md:w-[calc(100%-5rem)]"
-                  : "pointer-events-auto relative h-full w-full"
+                  : "vhs-scanlines pointer-events-auto relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl shadow-black/60"
               }
               onClick={(e) => isFullscreen && e.stopPropagation()}
             >
@@ -291,8 +279,35 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
                 preload="metadata"
                 disablePictureInPicture
                 controlsList="nodownload noplaybackrate noremoteplayback"
+                onClick={() => {
+                  if (!isFullscreen) togglePlay();
+                }}
                 onEnded={() => setIsPlaying(false)}
               />
+
+              {/* Date label */}
+              <div className="pointer-events-none absolute right-5 top-5 z-[4] font-mono text-[11px] tracking-[0.2em] text-white/60">
+                {video.dateLabel}
+              </div>
+
+              {/* Big centered play button, shown whenever paused */}
+              {!isPlaying && (
+                <button
+                  data-cursor="hover"
+                  onClick={togglePlay}
+                  aria-label="تشغيل"
+                  className="absolute inset-0 z-[4] flex items-center justify-center"
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/25 bg-black/30 backdrop-blur-sm transition-transform hover:scale-105">
+                    <Play size={22} className="ml-1 text-white/90" />
+                  </span>
+                </button>
+              )}
+
+              {/* Title label */}
+              <div className="pointer-events-none absolute bottom-20 left-5 z-[4] font-body text-sm text-white/80">
+                {video.title}
+              </div>
 
               {isLoading && !hasError && (
                 <div className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center bg-black/30">
@@ -312,19 +327,11 @@ export function VHSPlayer({ video }: VHSPlayerProps) {
 
               <div className="pointer-events-none absolute inset-0 z-[3] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.55)_100%)]" />
 
-              {isFullscreen && (
-                <>
-                  <div className="pointer-events-none absolute right-5 top-5 z-[4] font-mono text-[11px] tracking-[0.2em] text-white/60">
-                    {video.dateLabel}
-                  </div>
-                  <div className="pointer-events-none absolute bottom-20 left-5 z-[4] font-body text-sm text-white/80">
-                    {video.title}
-                  </div>
-                  <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[4]">
-                    {controls}
-                  </div>
-                </>
-              )}
+              {/* Controls: always on top (z-[7]), always inside the portal
+                  so they're never covered by anything. */}
+              <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-[7]">
+                {controls}
+              </div>
             </div>
           </div>,
           document.body
