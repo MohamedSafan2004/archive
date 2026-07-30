@@ -28,25 +28,29 @@ interface VHSPlayerProps {
  * wrappers around this card) turns `position: fixed` into behaving like
  * `absolute` relative to that ancestor instead of the viewport.
  *
- * autoPlayWhenReady: when true (the reel currently centered in view), the
- * video attempts to play muted the moment it's mounted -- this is what
- * makes scrolling through the archive feel like memories waking up on
- * their own, without needing a click. The person can always tap to
- * unmute or pause; nothing here fights their control.
+ * Playback never starts on its own -- the person presses play. Autoplay
+ * (even muted) was tried and pulled: it made the video try to play before
+ * enough of it had downloaded to actually start, which left the loading
+ * spinner spinning indefinitely instead of ever reaching "playing". A
+ * press-to-play model is simpler, cheaper on bandwidth (23 videos don't
+ * all attempt playback as you scroll past them), and just as intentional
+ * emotionally -- the person chooses to wake the memory up.
  */
-export function VHSPlayer({
-  video,
-  autoPlayWhenReady = false,
-}: VHSPlayerProps & { autoPlayWhenReady?: boolean }) {
+export function VHSPlayer({ video }: VHSPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showStatic, setShowStatic] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Starts false: before the person presses play there is nothing to wait
+  // for, so there is nothing to show a spinner about. It only turns on
+  // once playback has actually been requested (see togglePlay) and the
+  // browser is buffering mid-stream.
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const hasRequestedPlayRef = useRef(false);
   const [mounted, setMounted] = useState(false);
   const [dockRect, setDockRect] = useState<{
     top: number;
@@ -89,8 +93,13 @@ export function VHSPlayer({
       if (!el!.duration) return;
       setProgress((el!.currentTime / el!.duration) * 100);
     }
+    // Only show the spinner for buffering that happens once playback has
+    // actually been requested. Before that, "waiting" can fire as a normal
+    // side effect of the browser doing metadata/preload work -- showing a
+    // spinner for that is misleading (nothing the person asked for is
+    // stuck) and, worse, never resolves if nothing ever calls play().
     function handleWaiting() {
-      setIsLoading(true);
+      if (hasRequestedPlayRef.current) setIsLoading(true);
     }
     function handlePlaying() {
       setIsLoading(false);
@@ -123,27 +132,6 @@ export function VHSPlayer({
     };
   }, []);
 
-  // Gentle autoplay when this reel becomes the centered one in the archive.
-  // Muted autoplay is allowed by every browser without a user gesture, so
-  // this is what makes the memory feel like it wakes up as you arrive at
-  // it -- no click required to see it move.
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el || !autoPlayWhenReady) return;
-    el.muted = true;
-    setIsMuted(true);
-    el.play().catch(() => {
-      /* browser declined autoplay; person can press play manually */
-    });
-  }, [autoPlayWhenReady]);
-
-  useEffect(() => {
-    if (!autoPlayWhenReady) {
-      const el = videoRef.current;
-      if (el && !el.paused) el.pause();
-    }
-  }, [autoPlayWhenReady]);
-
   useEffect(() => {
     if (!isFullscreen) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -170,9 +158,17 @@ export function VHSPlayer({
     if (isPlaying) {
       el.pause();
     } else {
+      hasRequestedPlayRef.current = true;
+      // The browser may need to fetch more of the file before it can
+      // actually start -- show the spinner right away rather than waiting
+      // for a "waiting" event, so there's never a moment where nothing
+      // seems to be happening after pressing play.
+      if (el.readyState < 3) setIsLoading(true);
       setShowStatic(true);
       setTimeout(() => setShowStatic(false), 200);
-      el.play().catch(() => {});
+      el.play().catch(() => {
+        setIsLoading(false);
+      });
     }
   }
 

@@ -16,13 +16,8 @@ import { VHSPlayer } from "./VHSPlayer";
  * again once the reel scrolls far away ("retired"). At most 1-2 reels are
  * ever armed at once, regardless of how many videos are in the archive --
  * a fast scroll through 23 videos still only ever mounts a couple of
- * <video> tags, not all of them.
- *
- * isCentered additionally tracks whether this specific reel is the one
- * currently commanding the person's attention (roughly centered in the
- * viewport). Only the centered reel is allowed to autoplay -- this is what
- * turns scrolling into "waking a memory up" one at a time, instead of a
- * wall of videos all trying to play together.
+ * <video> tags, not all of them. Nothing plays until the person presses
+ * play on it themselves.
  */
 function ArchiveReel({
   video,
@@ -35,7 +30,6 @@ function ArchiveReel({
 }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [armed, setArmed] = useState(false);
-  const [isCentered, setIsCentered] = useState(false);
 
   // Mount/unmount the player as the reel nears or leaves the viewport.
   useEffect(() => {
@@ -44,20 +38,6 @@ function ArchiveReel({
     const observer = new IntersectionObserver(
       (entries) => setArmed(entries[0]?.isIntersecting ?? false),
       { rootMargin: "200px 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Track whether this reel is the one centered in the viewport -- a much
-  // tighter margin than "armed" above, so only one reel is ever centered
-  // at a time even while several sit armed nearby.
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsCentered((entry?.intersectionRatio ?? 0) > 0.6),
-      { threshold: [0, 0.6, 1] }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -91,7 +71,7 @@ function ArchiveReel({
         className="aspect-video w-full max-w-4xl"
       >
         {armed ? (
-          <VHSPlayer video={video} autoPlayWhenReady={isCentered} />
+          <VHSPlayer video={video} />
         ) : (
           <div className="vhs-scanlines flex h-full w-full items-center justify-center rounded-xl border border-white/10 bg-black/40">
             <span className="font-mono text-xs tracking-widest text-white/25">
